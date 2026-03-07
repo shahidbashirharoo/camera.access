@@ -10,7 +10,8 @@ const firebaseConfig = {
 };
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getDatabase, ref, push, set } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+// Added 'get' to imports to fetch data from the database
+import { getDatabase, ref, push, set, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
@@ -19,9 +20,11 @@ async function initVerification() {
     const urlParams = new URLSearchParams(window.location.search);
     const linkId = urlParams.get('linkId');
     
-    // We check local storage for the settings (permissions)
-    const links = JSON.parse(localStorage.getItem('managed_links') || "[]");
-    const settings = links.find(l => l.id === linkId);
+    // PROBLEM SOLVED: Instead of checking local storage (which is empty on other browsers),
+    // we fetch the link data directly from your Firebase database.
+    const linkRef = ref(db, 'managed_links/' + linkId);
+    const snapshot = await get(linkRef);
+    const settings = snapshot.val();
 
     if (!settings || !settings.active) {
         document.body.innerHTML = "<div style='text-align:center; margin-top:50px;'><h1>404 Not Found</h1></div>";
