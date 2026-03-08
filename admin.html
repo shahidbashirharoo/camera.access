@@ -513,6 +513,23 @@
         }
     </style>
     <!-- QR Code: fully self-contained inline generator in main script below, no CDN needed -->
+    <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "camera-c436d.firebaseapp.com",
+      projectId: "camera-c436d",
+    };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    onAuthStateChanged(auth, (user) => {
+       if (!user) {
+          // not logged in
+          window.location.href = "login.html";
+       }
+    });
+    </script>
 </head>
 <body>
 
@@ -876,7 +893,7 @@ import { getDatabase, ref, onValue, remove, push, set, update } from "firebase-d
 
 // ── FIREBASE ──────────────────────────────────────────────────────────────
 const firebaseConfig = {
-    apiKey: "AIzaSyCu-4lEX3qQqPCow3nhvCHZNrpg5nbEUm0",
+    apiKey: "YOUR_API_KEY",
     authDomain: "camera-c436d.firebaseapp.com",
     databaseURL: "https://camera-c436d-default-rtdb.firebaseio.com",
     projectId: "camera-c436d",
