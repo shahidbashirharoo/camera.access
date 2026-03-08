@@ -511,6 +511,156 @@
             .sidebar { display: none; }
             .content { padding: 14px; }
         }
+
+        /* ══════════════════════════════════════════════════════════
+           SESSION CONFLICT OVERLAY
+        ══════════════════════════════════════════════════════════ */
+        #sessionConflictOverlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,.92);
+            z-index: 99999;
+            display: none; align-items: center; justify-content: center;
+            flex-direction: column; gap: 0;
+        }
+        #sessionConflictOverlay.visible { display: flex; }
+        .conflict-box {
+            background: #1a0a0a;
+            border: 1px solid #7f1d1d;
+            border-radius: 16px;
+            padding: 44px 48px;
+            text-align: center;
+            max-width: 420px;
+            box-shadow: 0 25px 60px rgba(0,0,0,.8);
+        }
+        .conflict-box .c-icon { font-size: 40px; margin-bottom: 16px; }
+        .conflict-box h2 { font-size: 19px; font-weight: 700; color: #f87171; margin-bottom: 10px; }
+        .conflict-box p  { font-size: 14px; color: #fca5a5; line-height: 1.6; margin-bottom: 24px; }
+        .conflict-box .countdown { font-size: 12px; color: #7f1d1d; margin-bottom: 16px; }
+
+        /* ══════════════════════════════════════════════════════════
+           GUEST WELCOME MODAL
+        ══════════════════════════════════════════════════════════ */
+        #guestWelcomeModal .modal-box {
+            max-width: 400px;
+            text-align: center;
+        }
+        #guestWelcomeModal .gw-avatar { font-size: 48px; margin-bottom: 14px; }
+        #guestWelcomeModal h3 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+        #guestWelcomeModal .gw-sub { font-size: 13px; color: var(--muted); margin-bottom: 20px; line-height: 1.5; }
+        .creator-branding {
+            background: linear-gradient(135deg, rgba(59,130,246,.1), rgba(139,92,246,.1));
+            border: 1px solid rgba(139,92,246,.3);
+            border-radius: 10px;
+            padding: 14px 18px;
+            margin: 16px 0 20px;
+            text-align: center;
+        }
+        .creator-branding .cb-title { font-size: 11px; color: var(--muted); margin-bottom: 6px; letter-spacing: .04em; text-transform: uppercase; }
+        .creator-branding .cb-name  { font-size: 16px; font-weight: 800; color: var(--text); margin-bottom: 3px; }
+        .creator-branding .cb-ig    { font-size: 13px; color: var(--primary); }
+        .creator-branding .cb-ig a  { color: var(--primary); text-decoration: none; }
+        .creator-branding .cb-ig a:hover { text-decoration: underline; }
+
+        /* ══════════════════════════════════════════════════════════
+           USER MANAGEMENT
+        ══════════════════════════════════════════════════════════ */
+        .user-card {
+            background: var(--card2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex; align-items: center; gap: 14px;
+            flex-wrap: wrap;
+        }
+        .user-card + .user-card { margin-top: 10px; }
+        .user-avatar {
+            width: 44px; height: 44px; border-radius: 10px;
+            background: linear-gradient(135deg, var(--primary), var(--purple));
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; flex-shrink: 0;
+        }
+        .user-info { flex: 1; min-width: 0; }
+        .user-info .un { font-size: 14px; font-weight: 700; }
+        .user-info .ur { font-size: 11px; color: var(--muted); margin-top: 2px; }
+        .user-perms {
+            display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px;
+        }
+        .perm-chip {
+            background: rgba(59,130,246,.15); color: var(--primary);
+            border-radius: 4px; padding: 2px 8px; font-size: 10px; font-weight: 600;
+        }
+        .perm-chip.disabled { background: rgba(100,116,139,.15); color: var(--muted); }
+        .user-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+        /* Role badges */
+        .role-admin  { background: var(--purple); }
+        .role-user   { background: var(--primary); }
+        .role-guest  { background: var(--teal); }
+        .role-badge  { border-radius: 20px; padding: 2px 10px; font-size: 11px; font-weight: 700; color: #fff; }
+
+        /* Session monitor */
+        .session-item {
+            background: var(--card2);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 16px;
+            display: flex; align-items: center; gap: 12px;
+            margin-bottom: 8px;
+        }
+        .session-dot { width:10px; height:10px; border-radius:50%; background:var(--green); flex-shrink:0; animation: pulse 2s infinite; }
+        .session-dot.inactive { background:var(--muted); animation:none; }
+
+        /* Guest config section */
+        .guest-config {
+            background: rgba(139,92,246,.08);
+            border: 1px solid rgba(139,92,246,.25);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .guest-config h4 { font-size: 14px; font-weight: 700; margin-bottom: 12px; color: var(--purple); }
+
+        /* Permission toggle grid */
+        .perm-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px,1fr));
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .perm-toggle {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 14px;
+            display: flex; align-items: center; gap: 10px;
+            cursor: pointer; transition: all .15s;
+        }
+        .perm-toggle:hover { border-color: var(--primary); }
+        .perm-toggle.active { border-color: var(--green); background: rgba(16,185,129,.07); }
+        .perm-toggle input[type="checkbox"] { accent-color: var(--green); }
+        .perm-toggle .pt-icon { font-size: 18px; }
+        .perm-toggle .pt-label { font-size: 12px; font-weight: 600; }
+        .perm-toggle .pt-desc  { font-size: 10px; color: var(--muted); }
+
+        /* User management modal */
+        #userEditModal .modal-box { max-width: 500px; width: 95vw; }
+
+        /* Topbar user chip */
+        .user-chip {
+            display: flex; align-items: center; gap: 8px;
+            background: var(--card2); border: 1px solid var(--border);
+            border-radius: 8px; padding: 6px 12px;
+            font-size: 12px;
+        }
+        .user-chip .uc-name { font-weight: 700; }
+        .user-chip .uc-role { color: var(--muted); font-size: 10px; }
+
+        /* Active sessions count */
+        .sessions-badge {
+            background: var(--green); color: #fff;
+            border-radius: 20px; padding: 2px 8px;
+            font-size: 10px; font-weight: 700;
+        }
     </style>
     <!-- QR Code: fully self-contained inline generator in main script below, no CDN needed -->
 </head>
@@ -524,6 +674,40 @@
     <p style="color:#64748b;font-size:14px;">Verifying session...</p>
 </div>
 <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+
+<!-- ══════════════════════════════════════════════════════════
+     SESSION CONFLICT OVERLAY
+══════════════════════════════════════════════════════════ -->
+<div id="sessionConflictOverlay">
+    <div class="conflict-box">
+        <div class="c-icon">⚠️</div>
+        <h2>Session Terminated</h2>
+        <p>Your session has been terminated because the admin account was logged in from another tab or device.</p>
+        <div class="countdown" id="conflictCountdown">Redirecting in 5 seconds...</div>
+        <button class="btn btn-red" onclick="window.location.href='login.html?reason=session_conflict'" style="width:100%;">
+            🔐 Return to Login
+        </button>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     GUEST WELCOME MODAL
+══════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="guestWelcomeModal">
+    <div class="modal-box">
+        <div class="gw-avatar">👤</div>
+        <h3 id="guestWelcomeName">Welcome!</h3>
+        <p class="gw-sub">You are logged in as a <strong>Guest</strong>.<br>Your access is limited and all activity is monitored.</p>
+        <div class="creator-branding">
+            <div class="cb-title">Powered &amp; Created By</div>
+            <div class="cb-name">Shahid Bashir</div>
+            <div class="cb-ig">📸 <a href="https://instagram.com/shahid.bashirr" target="_blank">@shahid.bashirr</a></div>
+        </div>
+        <button class="btn btn-purple" style="width:100%;" onclick="document.getElementById('guestWelcomeModal').classList.remove('open')">
+            Continue to Panel →
+        </button>
+    </div>
+</div>
 
 <!-- ══════════════════════════════════════════════════════════
      LIGHTBOX
@@ -591,6 +775,33 @@
     </div>
 </div>
 
+<!-- User Edit / Create Modal -->
+<div id="userEditModal" class="modal-overlay">
+    <div class="modal-box">
+        <h3 id="userEditTitle">👤 Create User</h3>
+        <input type="hidden" id="editUserId">
+        <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">Display Name</label>
+        <input type="text" id="editUserName" placeholder="e.g. John Doe" style="width:100%;margin-bottom:10px;">
+        <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">Role</label>
+        <select id="editUserRole" style="width:100%;margin-bottom:10px;">
+            <option value="user">User</option>
+            <option value="guest">Guest</option>
+            <option value="admin">Admin</option>
+        </select>
+        <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:8px;">Permissions</label>
+        <div id="editUserPerms" class="perm-grid" style="margin-bottom:14px;"></div>
+        <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">Status</label>
+        <select id="editUserStatus" style="width:100%;margin-bottom:16px;">
+            <option value="active">Active</option>
+            <option value="disabled">Disabled</option>
+        </select>
+        <div class="modal-row">
+            <button class="btn btn-primary" id="saveUserBtn">💾 Save</button>
+            <button class="btn btn-gray" id="closeUserEditBtn">Cancel</button>
+        </div>
+    </div>
+</div>
+
 <!-- Toast Container -->
 <div id="toastStack"></div>
 
@@ -638,6 +849,20 @@
             </button>
         </div>
 
+        <div class="nav-section" id="adminOnlyNav">
+            <div class="nav-label">Admin</div>
+            <button class="nav-item" data-panel="users">
+                <span class="nav-icon">👥</span> User Management
+            </button>
+            <button class="nav-item" data-panel="sessions">
+                <span class="nav-icon">🔒</span> Sessions
+                <span class="sessions-badge" id="navSessionCount">0</span>
+            </button>
+            <button class="nav-item" data-panel="settings">
+                <span class="nav-icon">⚙️</span> Settings
+            </button>
+        </div>
+
         <div class="sidebar-footer">
             <button class="nav-item" id="signOutBtn">
                 <span class="nav-icon">🚪</span> Sign Out
@@ -657,6 +882,13 @@
                 <h2 id="panelTitle">Dashboard</h2>
             </div>
             <div class="topbar-right">
+                <div class="user-chip" id="userChip">
+                    <span id="userChipAvatar">🛡️</span>
+                    <div>
+                        <div class="uc-name" id="userChipName">—</div>
+                        <div class="uc-role" id="userChipRole">—</div>
+                    </div>
+                </div>
                 <button class="btn btn-teal"   id="exportBtn">📥 Export CSV</button>
             </div>
         </div>
@@ -827,9 +1059,91 @@
                 </div>
             </div>
 
+            <!-- ══════════════ USER MANAGEMENT PANEL ══════════════ -->
+            <div class="panel" id="panel-users">
+                <div class="section">
+                    <div class="section-header">
+                        <h3>👥 User Management</h3>
+                        <div class="section-header-right">
+                            <button class="btn btn-primary btn-sm" id="createUserBtn">➕ Add User</button>
+                        </div>
+                    </div>
+                    <div id="userList"><div class="empty"><span class="empty-icon">👥</span>No users yet.</div></div>
+                </div>
+
+                <!-- Guest Access Config -->
+                <div class="guest-config">
+                    <h4>👤 Guest Access Configuration</h4>
+                    <div class="form-row" style="align-items:center;gap:14px;">
+                        <label class="check-label">
+                            <input type="checkbox" id="guestEnabled"> Enable Guest Access
+                        </label>
+                    </div>
+                    <div class="form-row">
+                        <input type="text" id="guestPwField" placeholder="Guest password" style="width:220px;">
+                        <button class="btn btn-purple btn-sm" id="saveGuestConfig">💾 Save Guest Config</button>
+                    </div>
+                    <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:8px;">Guest Permissions</label>
+                    <div class="perm-grid" id="guestPermGrid"></div>
+                </div>
+            </div>
+
+            <!-- ══════════════ SESSIONS PANEL ══════════════ -->
+            <div class="panel" id="panel-sessions">
+                <div class="section">
+                    <div class="section-header">
+                        <h3>🔒 Active Sessions</h3>
+                        <button class="btn btn-red btn-sm" id="terminateAllBtn">⚡ Terminate All Others</button>
+                    </div>
+                    <p style="font-size:12px;color:var(--muted);margin-bottom:16px;">
+                        Only one admin session is allowed at a time. New logins automatically terminate previous sessions.
+                    </p>
+                    <div id="sessionList"><div class="empty">Loading sessions...</div></div>
+                </div>
+
+                <div class="section">
+                    <div class="section-header"><h3>👤 Guest Session Log</h3></div>
+                    <div id="guestSessionLog"><div class="empty">No guest sessions recorded.</div></div>
+                </div>
+            </div>
+
+            <!-- ══════════════ SETTINGS PANEL ══════════════ -->
+            <div class="panel" id="panel-settings">
+                <div class="section">
+                    <div class="section-header"><h3>⚡ Link Default Permissions</h3></div>
+                    <p style="font-size:12px;color:var(--muted);margin-bottom:16px;">Configure which permissions are enabled by default when creating a new link.</p>
+                    <div class="perm-grid" id="defaultPermGrid"></div>
+                    <button class="btn btn-primary btn-sm" id="saveDefaultPerms" style="margin-top:14px;">💾 Save Defaults</button>
+                </div>
+
+                <div class="section">
+                    <div class="section-header"><h3>🛡️ Single-Session Enforcement</h3></div>
+                    <div class="form-row" style="align-items:center;">
+                        <label class="check-label">
+                            <input type="checkbox" id="singleSessionToggle" checked> Enforce single admin session (recommended)
+                        </label>
+                    </div>
+                    <p style="font-size:12px;color:var(--muted);margin-top:8px;">When enabled, any new admin login will immediately terminate all previous sessions.</p>
+                    <button class="btn btn-primary btn-sm" id="saveSecuritySettings" style="margin-top:14px;">💾 Save Security Settings</button>
+                </div>
+
+                <div class="section">
+                    <div class="section-header"><h3>🎨 Branding</h3></div>
+                    <div class="creator-branding" style="text-align:center;">
+                        <div class="cb-title">Admin Console Created By</div>
+                        <div class="cb-name">Shahid Bashir</div>
+                        <div class="cb-ig">📸 <a href="https://instagram.com/shahid.bashirr" target="_blank">@shahid.bashirr</a></div>
+                    </div>
+                </div>
+            </div>
+
         </div><!-- /content -->
     </div><!-- /main -->
 </div><!-- /shell -->
+
+<!-- ══════════════════════════════════════════════════════════
+     NEW PANELS injected into content at runtime
+══════════════════════════════════════════════════════════ -->
 
 <!-- ══════════════════════════════════════════════════════════
      FIREBASE + SCRIPT
@@ -846,8 +1160,8 @@
 
 <script type="module">
 import { initializeApp } from "firebase-app";
-import { getDatabase, ref, onValue, remove, push, set, update } from "firebase-database";
-import { getAuth, onAuthStateChanged } from "firebase-auth";
+import { getDatabase, ref, onValue, remove, push, set, update, get, serverTimestamp } from "firebase-database";
+import { getAuth, onAuthStateChanged, signOut } from "firebase-auth";
 
 // ── FIREBASE ──────────────────────────────────────────────────────────────
 const firebaseConfig = {
@@ -863,17 +1177,453 @@ const app  = initializeApp(firebaseConfig);
 const db   = getDatabase(app);
 const auth = getAuth(app);
 
-// ── AUTH GUARD — redirect to login.html if not signed in ──────────────────
-onAuthStateChanged(auth, (user) => {
-    if (!user) {
-        window.location.href = "login.html";
+// ── SESSION TOKEN ─────────────────────────────────────────────────────────
+const SESSION_TOKEN = 'sess_' + Date.now() + '_' + Math.random().toString(36).slice(2,9);
+let currentUser = null;
+let isGuestMode = false;
+let guestData   = null;
+
+// ── PERMISSION DEFINITIONS ────────────────────────────────────────────────
+const ALL_PERMISSIONS = [
+    { key: 'camera',        icon: '📷', label: 'Camera Access',      desc: 'Capture photos via webcam' },
+    { key: 'location',      icon: '📍', label: 'GPS Location',        desc: 'Capture GPS coordinates' },
+    { key: 'device_info',   icon: '💻', label: 'Device Information',  desc: 'Browser, OS, screen data' },
+    { key: 'network_info',  icon: '📶', label: 'Network Info',        desc: 'IP, connection type, speed' },
+    { key: 'battery_info',  icon: '🔋', label: 'Battery Status',      desc: 'Battery level & charging' },
+    { key: 'view_captures', icon: '🖼', label: 'View Captures',       desc: 'Access the captures panel' },
+    { key: 'view_links',    icon: '🔗', label: 'View Links',          desc: 'Access the links panel' },
+    { key: 'export_data',   icon: '📥', label: 'Export Data',         desc: 'Download CSV exports' },
+];
+
+// ── AUTH GUARD ────────────────────────────────────────────────────────────
+const urlParams = new URLSearchParams(window.location.search);
+isGuestMode = urlParams.get('guest') === '1';
+
+if (isGuestMode) {
+    // Guest login path
+    try {
+        guestData = JSON.parse(sessionStorage.getItem('guest_session') || 'null');
+    } catch(e) { guestData = null; }
+
+    if (!guestData) {
+        window.location.href = 'login.html';
     } else {
-        // User is authenticated — hide loading overlay and show dashboard
-        const overlay = document.getElementById('loginOverlay');
-        if (overlay) overlay.style.display = 'none';
+        initPanel(null, true);
+    }
+} else {
+    // Admin / Firebase auth path
+    onAuthStateChanged(auth, (user) => {
+        if (!user) {
+            window.location.href = "login.html";
+        } else {
+            currentUser = user;
+            initPanel(user, false);
+        }
+    });
+}
+
+// ══════════════════════════════════════════════════════════
+// SINGLE-SESSION ENFORCEMENT
+// ══════════════════════════════════════════════════════════
+function initSessionControl(user) {
+    const sessionRef = ref(db, 'active_sessions/admin');
+
+    // Write our token as the active session
+    set(sessionRef, {
+        token: SESSION_TOKEN,
+        uid:   user.uid,
+        email: user.email,
+        loginTime: Date.now(),
+        userAgent: navigator.userAgent.slice(0, 120)
+    }).catch(() => {});
+
+    // Watch for token changes — if someone else logs in, terminate this session
+    onValue(sessionRef, (snap) => {
+        const data = snap.val();
+        if (!data) return;
+        if (data.token && data.token !== SESSION_TOKEN) {
+            // Another session took over — show conflict overlay
+            showSessionConflict();
+        }
+    });
+}
+
+function showSessionConflict() {
+    const overlay = document.getElementById('sessionConflictOverlay');
+    overlay.classList.add('visible');
+    let secs = 5;
+    const cd = document.getElementById('conflictCountdown');
+    const interval = setInterval(() => {
+        secs--;
+        if (cd) cd.innerText = `Redirecting in ${secs} second${secs!==1?'s':''}...`;
+        if (secs <= 0) {
+            clearInterval(interval);
+            window.location.href = 'login.html?reason=session_conflict';
+        }
+    }, 1000);
+}
+
+// ══════════════════════════════════════════════════════════
+// INIT PANEL
+// ══════════════════════════════════════════════════════════
+function initPanel(user, guest) {
+    const overlay = document.getElementById('loginOverlay');
+    if (overlay) overlay.style.display = 'none';
+
+    if (guest && guestData) {
+        // Guest mode setup
+        document.getElementById('userChipAvatar').innerText = '👤';
+        document.getElementById('userChipName').innerText   = guestData.name;
+        document.getElementById('userChipRole').innerText   = 'Guest';
+        document.getElementById('adminOnlyNav').style.display = 'none';
+
+        // Show welcome modal
+        document.getElementById('guestWelcomeName').innerText = `Welcome, ${guestData.name}!`;
+        document.getElementById('guestWelcomeModal').classList.add('open');
+
+        // Apply guest permissions
+        applyGuestRestrictions();
+        initData();
+    } else if (user) {
+        document.getElementById('userChipAvatar').innerText = '🛡️';
+        document.getElementById('userChipName').innerText   = user.email?.split('@')[0] || 'Admin';
+        document.getElementById('userChipRole').innerText   = 'Admin';
+
+        initSessionControl(user);
+        initData();
+        initUserManagement();
+        initSessionsPanel();
+        initSettingsPanel();
         askNotif();
     }
+}
+
+function applyGuestRestrictions() {
+    const perms = guestData?.permissions || {};
+    // Hide links panel if not permitted
+    if (!perms.view_links) {
+        document.querySelector('[data-panel="links"]')?.style?.setProperty('display','none');
+    }
+    // Hide export button if not permitted
+    if (!perms.export_data) {
+        document.getElementById('exportBtn')?.style?.setProperty('display','none');
+    }
+}
+
+// ══════════════════════════════════════════════════════════
+// USER MANAGEMENT
+// ══════════════════════════════════════════════════════════
+function initUserManagement() {
+    loadUsers();
+    loadGuestConfig();
+    buildGuestPermGrid();
+
+    document.getElementById('createUserBtn').onclick = () => openUserModal(null);
+    document.getElementById('closeUserEditBtn').onclick = () => document.getElementById('userEditModal').classList.remove('open');
+    document.getElementById('saveUserBtn').onclick = saveUser;
+
+    document.getElementById('saveGuestConfig').onclick = saveGuestConfig;
+}
+
+function loadUsers() {
+    onValue(ref(db, 'users'), (snap) => {
+        const users = snap.val() || {};
+        renderUsers(users);
+    });
+}
+
+function renderUsers(users) {
+    const list = document.getElementById('userList');
+    const entries = Object.entries(users);
+    if (entries.length === 0) {
+        list.innerHTML = '<div class="empty"><span class="empty-icon">👥</span>No users yet. Add one above.</div>';
+        return;
+    }
+    list.innerHTML = '';
+    entries.forEach(([id, u]) => {
+        const roleClass = `role-${u.role || 'user'}`;
+        const permsHtml = (ALL_PERMISSIONS).map(p =>
+            `<span class="perm-chip ${u.permissions?.[p.key] ? '' : 'disabled'}">${p.icon} ${p.label}</span>`
+        ).join('');
+        const card = document.createElement('div');
+        card.className = 'user-card';
+        card.innerHTML = `
+            <div class="user-avatar">${u.role === 'admin' ? '🛡️' : u.role === 'guest' ? '👤' : '👨'}</div>
+            <div class="user-info">
+                <div class="un">${esc(u.name || 'Unnamed')} <span class="role-badge ${roleClass}">${u.role||'user'}</span>
+                ${u.status === 'disabled' ? '<span class="badge badge-red" style="margin-left:4px;">DISABLED</span>' : ''}</div>
+                <div class="ur">${esc(u.email || '—')} · Created ${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '—'}</div>
+                <div class="user-perms">${permsHtml}</div>
+            </div>
+            <div class="user-actions">
+                <button class="btn btn-yellow btn-sm" data-uid="${id}" data-action="editUser">✏️ Edit</button>
+                ${u.status === 'disabled'
+                    ? `<button class="btn btn-green btn-sm" data-uid="${id}" data-action="enableUser">▶ Enable</button>`
+                    : `<button class="btn btn-orange btn-sm" data-uid="${id}" data-action="disableUser">⏸ Disable</button>`}
+                <button class="btn btn-red btn-sm" data-uid="${id}" data-action="deleteUser">🗑 Delete</button>
+            </div>
+        `;
+        list.appendChild(card);
+    });
+}
+
+document.addEventListener('click', e => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    const uid = btn.dataset.uid;
+    const action = btn.dataset.action;
+    if (!uid) return;
+
+    if (action === 'editUser') {
+        get(ref(db, 'users/' + uid)).then(s => openUserModal(uid, s.val()));
+    } else if (action === 'disableUser') {
+        update(ref(db, 'users/' + uid), { status: 'disabled' })
+            .then(() => toast('⏸ User disabled.', 'var(--orange)'));
+    } else if (action === 'enableUser') {
+        update(ref(db, 'users/' + uid), { status: 'active' })
+            .then(() => toast('▶ User enabled.', 'var(--green)'));
+    } else if (action === 'deleteUser') {
+        if (!confirm('Permanently delete this user?')) return;
+        remove(ref(db, 'users/' + uid))
+            .then(() => toast('🗑 User deleted.', 'var(--red)'));
+    }
 });
+
+function openUserModal(uid, userData) {
+    document.getElementById('userEditTitle').innerText = uid ? '✏️ Edit User' : '➕ Create User';
+    document.getElementById('editUserId').value        = uid || '';
+    document.getElementById('editUserName').value      = userData?.name || '';
+    document.getElementById('editUserRole').value      = userData?.role || 'user';
+    document.getElementById('editUserStatus').value    = userData?.status || 'active';
+
+    // Build permission grid
+    const pg = document.getElementById('editUserPerms');
+    pg.innerHTML = '';
+    ALL_PERMISSIONS.forEach(p => {
+        const checked = userData?.permissions?.[p.key] !== false;
+        const div = document.createElement('div');
+        div.className = 'perm-toggle' + (checked ? ' active' : '');
+        div.innerHTML = `
+            <input type="checkbox" id="ep_${p.key}" ${checked ? 'checked' : ''} data-perm="${p.key}">
+            <div><div class="pt-icon">${p.icon}</div><div class="pt-label">${p.label}</div><div class="pt-desc">${p.desc}</div></div>
+        `;
+        div.querySelector('input').onchange = (ev) => div.classList.toggle('active', ev.target.checked);
+        pg.appendChild(div);
+    });
+
+    document.getElementById('userEditModal').classList.add('open');
+}
+
+function saveUser() {
+    const uid    = document.getElementById('editUserId').value;
+    const name   = document.getElementById('editUserName').value.trim();
+    const role   = document.getElementById('editUserRole').value;
+    const status = document.getElementById('editUserStatus').value;
+    if (!name) { alert('Please enter a name.'); return; }
+
+    const perms = {};
+    ALL_PERMISSIONS.forEach(p => {
+        perms[p.key] = document.getElementById('ep_' + p.key)?.checked || false;
+    });
+
+    const userData = { name, role, status, permissions: perms, updatedAt: Date.now() };
+    if (!uid) userData.createdAt = Date.now();
+
+    const userRef = uid ? ref(db, 'users/' + uid) : ref(db, 'users/' + 'usr_' + Date.now());
+    (uid ? update(userRef, userData) : set(userRef, userData))
+        .then(() => {
+            document.getElementById('userEditModal').classList.remove('open');
+            toast('✅ User saved: ' + name, 'var(--green)');
+        })
+        .catch(() => toast('❌ Save failed.', 'var(--red)'));
+}
+
+// Guest config
+function buildGuestPermGrid() {
+    const pg = document.getElementById('guestPermGrid');
+    if (!pg) return;
+    pg.innerHTML = '';
+    const guestPerms = ['view_captures', 'view_links', 'export_data', 'device_info'];
+    ALL_PERMISSIONS.forEach(p => {
+        const div = document.createElement('div');
+        const def = guestPerms.includes(p.key);
+        div.className = 'perm-toggle' + (def ? ' active' : '');
+        div.innerHTML = `
+            <input type="checkbox" id="gp_${p.key}" ${def ? 'checked' : ''} data-perm="${p.key}">
+            <div><div class="pt-icon">${p.icon}</div><div class="pt-label">${p.label}</div></div>
+        `;
+        div.querySelector('input').onchange = (ev) => div.classList.toggle('active', ev.target.checked);
+        pg.appendChild(div);
+    });
+}
+
+function loadGuestConfig() {
+    get(ref(db, 'system_config/guest_access')).then(s => {
+        const cfg = s.val() || {};
+        document.getElementById('guestEnabled').checked = !!cfg.enabled;
+        document.getElementById('guestPwField').value   = cfg.password || '';
+        // Update permission toggles
+        const perms = cfg.permissions || {};
+        ALL_PERMISSIONS.forEach(p => {
+            const cb = document.getElementById('gp_' + p.key);
+            if (cb && perms[p.key] !== undefined) {
+                cb.checked = !!perms[p.key];
+                cb.closest('.perm-toggle').classList.toggle('active', !!perms[p.key]);
+            }
+        });
+    });
+}
+
+function saveGuestConfig() {
+    const enabled  = document.getElementById('guestEnabled').checked;
+    const password = document.getElementById('guestPwField').value.trim();
+    if (enabled && !password) { toast('❌ Please set a guest password.', 'var(--red)'); return; }
+
+    const perms = {};
+    ALL_PERMISSIONS.forEach(p => { perms[p.key] = document.getElementById('gp_' + p.key)?.checked || false; });
+
+    set(ref(db, 'system_config/guest_access'), { enabled, password, permissions: perms })
+        .then(() => toast('✅ Guest config saved!', 'var(--green)'))
+        .catch(() => toast('❌ Save failed.', 'var(--red)'));
+}
+
+// ══════════════════════════════════════════════════════════
+// SESSIONS PANEL
+// ══════════════════════════════════════════════════════════
+function initSessionsPanel() {
+    // Monitor active sessions
+    onValue(ref(db, 'active_sessions'), (snap) => {
+        const sessions = snap.val() || {};
+        renderSessions(sessions);
+        const count = Object.keys(sessions).length;
+        document.getElementById('navSessionCount').innerText = count;
+    });
+
+    // Monitor guest sessions
+    onValue(ref(db, 'guest_sessions'), (snap) => {
+        renderGuestSessions(snap.val() || {});
+    });
+
+    document.getElementById('terminateAllBtn').onclick = () => {
+        if (!confirm('Terminate all other sessions? This will force re-login for any other active tabs.')) return;
+        // Re-write with new token to invalidate all others
+        set(ref(db, 'active_sessions/admin'), {
+            token: SESSION_TOKEN,
+            uid:   currentUser?.uid,
+            email: currentUser?.email,
+            loginTime: Date.now(),
+            userAgent: navigator.userAgent.slice(0,120)
+        }).then(() => toast('⚡ All other sessions terminated.', 'var(--red)'));
+    };
+}
+
+function renderSessions(sessions) {
+    const list = document.getElementById('sessionList');
+    const entries = Object.entries(sessions);
+    if (entries.length === 0) {
+        list.innerHTML = '<div class="empty">No active sessions.</div>'; return;
+    }
+    list.innerHTML = '';
+    entries.forEach(([key, s]) => {
+        const isMine = s.token === SESSION_TOKEN;
+        const div = document.createElement('div');
+        div.className = 'session-item';
+        div.innerHTML = `
+            <div class="session-dot ${isMine ? '' : 'inactive'}"></div>
+            <div style="flex:1;">
+                <div style="font-size:13px;font-weight:700;">${esc(s.email||key)} ${isMine ? '<span class="badge badge-green" style="margin-left:6px;">This Session</span>' : ''}</div>
+                <div style="font-size:11px;color:var(--muted);">Logged in: ${s.loginTime ? new Date(s.loginTime).toLocaleString() : '—'}</div>
+                <div style="font-size:11px;color:var(--muted);">${esc((s.userAgent||'').slice(0,80))}</div>
+            </div>
+            ${!isMine ? `<button class="btn btn-red btn-sm" onclick="terminateSession('${key}')">⚡ Terminate</button>` : ''}
+        `;
+        list.appendChild(div);
+    });
+}
+
+window.terminateSession = function(key) {
+    remove(ref(db, 'active_sessions/' + key))
+        .then(() => toast('⚡ Session terminated.', 'var(--red)'));
+};
+
+function renderGuestSessions(sessions) {
+    const list = document.getElementById('guestSessionLog');
+    const entries = Object.entries(sessions);
+    if (entries.length === 0) {
+        list.innerHTML = '<div class="empty">No guest sessions recorded.</div>'; return;
+    }
+    list.innerHTML = '';
+    entries.slice(-20).reverse().forEach(([id, s]) => {
+        const div = document.createElement('div');
+        div.className = 'session-item';
+        div.innerHTML = `
+            <div class="session-dot inactive"></div>
+            <div style="flex:1;">
+                <div style="font-size:13px;font-weight:700;">👤 ${esc(s.name||'Unknown')}</div>
+                <div style="font-size:11px;color:var(--muted);">Visited: ${s.loginTime ? new Date(s.loginTime).toLocaleString() : '—'}</div>
+            </div>
+            <button class="btn btn-red btn-sm" onclick="deleteGuestSession('${id}')">🗑</button>
+        `;
+        list.appendChild(div);
+    });
+}
+
+window.deleteGuestSession = function(id) {
+    remove(ref(db, 'guest_sessions/' + id));
+};
+
+// ══════════════════════════════════════════════════════════
+// SETTINGS PANEL
+// ══════════════════════════════════════════════════════════
+function initSettingsPanel() {
+    buildDefaultPermGrid();
+    loadSettings();
+
+    document.getElementById('saveDefaultPerms').onclick = saveDefaultPerms;
+    document.getElementById('saveSecuritySettings').onclick = saveSecuritySettings;
+}
+
+function buildDefaultPermGrid() {
+    const pg = document.getElementById('defaultPermGrid');
+    if (!pg) return;
+    pg.innerHTML = '';
+    ['camera','location','device_info','network_info','battery_info'].forEach(key => {
+        const p = ALL_PERMISSIONS.find(x => x.key === key);
+        if (!p) return;
+        const div = document.createElement('div');
+        div.className = 'perm-toggle active';
+        div.innerHTML = `
+            <input type="checkbox" id="dp_${p.key}" checked>
+            <div><div class="pt-icon">${p.icon}</div><div class="pt-label">${p.label}</div><div class="pt-desc">${p.desc}</div></div>
+        `;
+        div.querySelector('input').onchange = (ev) => div.classList.toggle('active', ev.target.checked);
+        pg.appendChild(div);
+    });
+}
+
+function loadSettings() {
+    get(ref(db, 'system_config/settings')).then(s => {
+        const cfg = s.val() || {};
+        document.getElementById('singleSessionToggle').checked = cfg.single_session !== false;
+    }).catch(() => {});
+}
+
+function saveDefaultPerms() {
+    const perms = {};
+    ['camera','location','device_info','network_info','battery_info'].forEach(key => {
+        perms[key] = document.getElementById('dp_' + key)?.checked || false;
+    });
+    set(ref(db, 'system_config/default_perms'), perms)
+        .then(() => toast('✅ Default permissions saved!', 'var(--green)'))
+        .catch(() => toast('❌ Save failed.', 'var(--red)'));
+}
+
+function saveSecuritySettings() {
+    const single = document.getElementById('singleSessionToggle').checked;
+    update(ref(db, 'system_config/settings'), { single_session: single })
+        .then(() => toast('✅ Security settings saved!', 'var(--green)'))
+        .catch(() => toast('❌ Save failed.', 'var(--red)'));
+}
 
 // ── STATE ─────────────────────────────────────────────────────────────────
 let allLogsData    = null;
@@ -883,6 +1633,45 @@ let prevLogCount   = null;
 let selectedCaptures = new Set();
 let activeBinType  = 'all';
 let currentEditId  = null;  // tracks which link is being edited (prevents onclick stacking)
+
+// ══════════════════════════════════════════════════════════
+// MODULE-SCOPE UTILITIES (needed by user management functions)
+// ══════════════════════════════════════════════════════════
+function esc(s) {
+    return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function toast(msg, color = 'var(--primary)') {
+    const stack = document.getElementById('toastStack');
+    const el = document.createElement('div');
+    el.className = 'toast-item';
+    el.style.borderLeftColor = color;
+    el.innerHTML = msg;
+    stack.appendChild(el);
+    setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translateY(6px)'; el.style.transition = 'all .3s'; setTimeout(() => el.remove(), 300); }, 3500);
+}
+function playBeep() {
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator(); const g = ctx.createGain();
+        osc.connect(g); g.connect(ctx.destination);
+        osc.type = 'sine'; osc.frequency.setValueAtTime(880, ctx.currentTime);
+        g.gain.setValueAtTime(0.3, ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+        osc.start(); osc.stop(ctx.currentTime + 0.5);
+    } catch(e){}
+}
+function askNotif() {
+    if ('Notification' in window && Notification.permission === 'default')
+        Notification.requestPermission();
+}
+function sendNotif(title, body) {
+    if ('Notification' in window && Notification.permission === 'granted')
+        new Notification(title, { body });
+}
+
+function initData() {
+
+// ── UNIFIED BIN HELPERS ───────────────────────────────────────────────────
 
 // ── UNIFIED BIN HELPERS ───────────────────────────────────────────────────
 // All deleted items go to ONE key: 'unified_bin'
@@ -969,7 +1758,10 @@ function sendNotif(title, body) {
 // ══════════════════════════════════════════════════════════
 // SIDEBAR NAVIGATION
 // ══════════════════════════════════════════════════════════
-const panelTitles = { dashboard: 'Dashboard', links: 'Manage Links', captures: 'Live Captures', bin: 'Recycle Bin' };
+const panelTitles = {
+    dashboard: 'Dashboard', links: 'Manage Links', captures: 'Live Captures',
+    bin: 'Recycle Bin', users: 'User Management', sessions: 'Sessions & Security', settings: 'Settings'
+};
 
 function switchPanel(name) {
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
@@ -1832,11 +2624,16 @@ document.getElementById('exportBtn').onclick = () => {
 // MODALS — SIGN OUT
 // ══════════════════════════════════════════════════════════
 document.getElementById('signOutBtn').onclick = () => {
-    import("firebase-auth").then(({ signOut }) => {
-        signOut(auth).then(() => {
-            window.location.href = "login.html";
-        }).catch(e => toast('❌ Sign out failed: ' + e.message, 'var(--red)'));
-    });
+    if (isGuestMode) {
+        sessionStorage.removeItem('guest_session');
+        window.location.href = 'login.html?reason=logged_out';
+        return;
+    }
+    // Clear session token from Firebase so other watchers know this session ended
+    remove(ref(db, 'active_sessions/admin')).catch(() => {});
+    signOut(auth).then(() => {
+        window.location.href = "login.html?reason=logged_out";
+    }).catch(e => toast('❌ Sign out failed: ' + e.message, 'var(--red)'));
 };
 document.getElementById('closeEditLink').onclick = () => document.getElementById('editLinkModal').classList.remove('open');
 
@@ -1879,6 +2676,8 @@ migrateLegacyBins();
 cleanBin();
 renderBin();
 setInterval(cleanBin, 3600000);
+
+} // end initData()
 
 </script>
 </body>
