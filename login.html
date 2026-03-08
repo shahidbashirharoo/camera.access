@@ -244,7 +244,6 @@ window.doLogin = async function () {
 };
 
 // ── Guest login ──────────────────────────────────────────────────────
-// ── Guest login ──────────────────────────────────────────────────────
 window.doGuestLogin = async function () {
     const pw  = document.getElementById('guestPassword').value;
     const btn = document.getElementById('guestBtn');
@@ -275,37 +274,48 @@ window.doGuestLogin = async function () {
 
         window._pendingGuestPerms = perms;
 
-        // FIX: Check if guest already entered their name before (persisted in localStorage)
-        const pwKey = 'gn_' + btoa(unescape(encodeURIComponent(pw))).replace(/[^a-zA-Z0-9]/g,'').slice(0, 20);
+        // FIX: Use localStorage to persist name across logins
+        // Key is derived from the password so different passwords = different name slots
+        const pwKey = 'gn_' + pw.split('').reduce((a,c)=>((a<<5)-a+c.charCodeAt(0))|0,0).toString(36).replace('-','m');
         window._pendingPwKey = pwKey;
         const savedName = localStorage.getItem(pwKey) || '';
 
         if (savedName) {
-            // Name already known — skip modal, go straight to panel
+            // Name already saved — skip modal entirely, go straight to panel
             await _completeGuestLogin(savedName, perms, pwKey);
         } else {
-            // First login — show name modal
+            // First time logging in — show name modal
             document.getElementById('guestNameModal').classList.add('open');
             setTimeout(() => document.getElementById('guestName').focus(), 200);
         }
     } catch(e) {
-        console.error('doGuestLogin error:', e);
+        console.error('Guest login error:', e);
         showError('❌ Error checking credentials. Try again.');
         btn.disabled = false; btn.innerHTML = '👤 Enter as Guest';
     }
 };
 
+// Shared helper — saves name and redirects
 async function _completeGuestLogin(name, perms, pwKey) {
-    // Persist name so future logins skip the modal
-    if (name && pwKey) localStorage.setItem(pwKey, name);
+    // Persist name in localStorage (survives logouts and browser restarts)
+    if (name && pwKey) {
+        try { localStorage.setItem(pwKey, name); } catch(e) {}
+    }
 
+    // Session storage holds the active session (cleared on logout/tab close)
     sessionStorage.setItem('guest_session', JSON.stringify({
-        name: name || '', role: 'guest', loginTime: Date.now(), permissions: perms, _pwKey: pwKey || ''
+        name: name || '',
+        role: 'guest',
+        loginTime: Date.now(),
+        permissions: perms,
+        _pwKey: pwKey || ''
     }));
 
+    // Log visit to Firebase
     set(ref(db, 'guest_sessions/' + Date.now()), {
-        name: name || 'Anonymous Guest', loginTime: Date.now(),
-        userAgent: navigator.userAgent.slice(0,120),
+        name: name || 'Anonymous Guest',
+        loginTime: Date.now(),
+        userAgent: navigator.userAgent.slice(0, 120),
         language: navigator.language,
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
     }).catch(() => {});
