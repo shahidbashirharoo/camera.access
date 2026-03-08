@@ -785,7 +785,7 @@
     <div class="modal-box" style="max-width:520px;width:95vw;max-height:90vh;overflow-y:auto;">
         <h3 id="userEditTitle">👤 Create User</h3>
         <input type="hidden" id="editUserId">
-        <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">Display Name *</label>
+        <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;" id="editUserNameLabel">Display Name *</label>
         <input type="text" id="editUserName" placeholder="e.g. John Doe" style="width:100%;margin-bottom:10px;">
         <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">Email (reference only)</label>
         <input type="email" id="editUserEmail" placeholder="user@example.com" style="width:100%;margin-bottom:10px;">
@@ -793,7 +793,6 @@
         <select id="editUserRole" style="width:100%;margin-bottom:10px;">
             <option value="user">👨 User</option>
             <option value="guest">👤 Guest</option>
-            <option value="admin">🛡️ Admin</option>
         </select>
         <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">Status</label>
         <select id="editUserStatus" style="width:100%;margin-bottom:12px;">
@@ -1358,8 +1357,9 @@ function bootPanel(){
 // ═══════════════════════════════════════════════════════════
 function setupGuestUI(){
     // User chip
+    const displayName = guestData.name || 'Guest';
     document.getElementById('userChipAvatar').innerText = '👤';
-    document.getElementById('userChipName').innerText   = guestData.name;
+    document.getElementById('userChipName').innerText   = displayName;
     document.getElementById('userChipRole').innerText   = 'Guest';
 
     // Hide admin-only nav section
@@ -1369,9 +1369,11 @@ function setupGuestUI(){
     // Apply permission restrictions to UI
     applyGuestPermissions(guestData.permissions||{});
 
-    // Show guest welcome modal
-    document.getElementById('guestWelcomeName').innerText = `Welcome, ${guestData.name}!`;
-    setTimeout(()=>document.getElementById('guestWelcomeModal').classList.add('open'), 300);
+    // Show guest welcome modal only if guest has a name
+    if(displayName && displayName !== 'Guest'){
+        document.getElementById('guestWelcomeName').innerText = `Welcome, ${displayName}!`;
+        setTimeout(()=>document.getElementById('guestWelcomeModal').classList.add('open'), 300);
+    }
 }
 
 function applyGuestPermissions(perms){
@@ -2066,6 +2068,14 @@ function openUserModal(uid,userData){
         div.querySelector('input').onchange=ev=>div.classList.toggle('active',ev.target.checked);
         pg.appendChild(div);
     });
+    // Update name label based on role
+    const roleEl=document.getElementById('editUserRole');
+    const updateNameLabel=()=>{
+        const lbl=document.getElementById('editUserNameLabel');
+        if(lbl) lbl.innerText=roleEl.value==='guest'?'Display Name (optional — guest can set on login)':'Display Name *';
+    };
+    updateNameLabel();
+    roleEl.onchange=updateNameLabel;
     document.getElementById('userEditModal').classList.add('open');
 }
 
@@ -2075,15 +2085,16 @@ function saveUser(){
     const email=document.getElementById('editUserEmail').value.trim();
     const role=document.getElementById('editUserRole').value;
     const status=document.getElementById('editUserStatus').value;
-    if(!name){ toast('❌ Name is required.','var(--red)'); return; }
+    // Name is optional for guests (they enter it on first login), required for users
+    if(role !== 'guest' && !name){ toast('❌ Name is required.','var(--red)'); return; }
     const perms={};
     ALL_PERMISSIONS.forEach(p=>{ perms[p.key]=document.getElementById('ep_'+p.key)?.checked||false; });
-    const data={name,email,role,status,permissions:perms,updatedAt:Date.now()};
+    const data={name:name||'',email,role,status,permissions:perms,updatedAt:Date.now()};
     if(!uid) data.createdAt=Date.now();
     const uRef=uid?ref(db,'users/'+uid):ref(db,'users/usr_'+Date.now());
     (uid?update(uRef,data):set(uRef,data))
-        .then(()=>{ document.getElementById('userEditModal').classList.remove('open'); toast('✅ User saved: '+name,'var(--green)'); })
-        .catch(()=>toast('❌ Save failed.','var(--red)'));
+        .then(()=>{ document.getElementById('userEditModal').classList.remove('open'); toast('✅ User saved'+(name?' : '+name:''),'var(--green)'); })
+        .catch(err=>{ console.error('saveUser error:',err); toast('❌ Save failed: '+err.message,'var(--red)'); });
 }
 
 function buildGuestPermGrid(){
