@@ -461,9 +461,8 @@
             word-break: break-all; margin-top: 8px;
             background: var(--bg2); padding: 8px 12px; border-radius: 6px; text-align: left;
         }
-    </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-</head>        /* ══════════════════════════════════════════════════════════
+
+        /* ══════════════════════════════════════════════════════════
            TOAST
         ══════════════════════════════════════════════════════════ */
         #toastStack {
@@ -513,6 +512,7 @@
             .content { padding: 14px; }
         }
     </style>
+    <!-- QR Code: fully self-contained inline generator in main script below, no CDN needed -->
 </head>
 <body>
 
@@ -1643,9 +1643,171 @@ document.getElementById('lightbox').addEventListener('click', e => {
 });
 
 // ══════════════════════════════════════════════════════════
-// QR CODE — uses qrcode.js (loaded from CDN, no external API call)
+// QR CODE — 100% self-contained, no CDN, works in incognito
+// Uses a compact QR encoder (Alphanumeric + Byte mode, version 1-10)
 // ══════════════════════════════════════════════════════════
 let currentQrUrl = '';
+
+// ── Tiny self-contained QR generator ──────────────────────
+const QRGen = (() => {
+    // GF(256) arithmetic for Reed-Solomon
+    const EXP = new Uint8Array(512);
+    const LOG  = new Uint8Array(256);
+    (() => {
+        let x = 1;
+        for (let i = 0; i < 255; i++) {
+            EXP[i] = x; LOG[x] = i;
+            x = x << 1; if (x & 256) x ^= 285;
+        }
+        for (let i = 255; i < 512; i++) EXP[i] = EXP[i - 255];
+    })();
+    const gfMul = (a, b) => a && b ? EXP[LOG[a] + LOG[b]] : 0;
+    const gfPoly = (e) => {
+        let p = [1];
+        for (let i = 0; i < e; i++) {
+            const q = [1, EXP[i]];
+            const r = new Array(p.length + q.length - 1).fill(0);
+            for (let j = 0; j < p.length; j++)
+                for (let k = 0; k < q.length; k++)
+                    r[j+k] ^= gfMul(p[j], q[k]);
+            p = r;
+        }
+        return p;
+    };
+    const gfPolyDiv = (msg, gen) => {
+        let r = [...msg];
+        for (let i = 0; i < msg.length; i++) {
+            const c = r[i];
+            if (c) for (let j = 0; j < gen.length; j++) r[i+j] ^= gfMul(gen[j], c);
+        }
+        return r.slice(msg.length);
+    };
+
+    // Version/ECC table [version, totalCodewords, dataCodewords, ecCodewords, blocks]
+    const VER = [
+        null,
+        [1,  26,  19,  7,  1],
+        [2,  44,  34, 10,  1],
+        [3,  70,  55, 15,  1],
+        [4, 100,  80, 20,  2],
+        [5, 134, 108, 26,  2],
+        [6, 172, 136, 36,  2],
+        [7, 196, 156, 40,  4],
+        [8, 242, 194, 48,  2],
+        [9, 292, 232, 60,  3],
+        [10,346, 274, 72,  4],
+    ];
+
+    function encode(text) {
+        const bytes = new TextEncoder().encode(text);
+        const len   = bytes.length;
+
+        // Pick smallest version that fits (M level ECC)
+        let ver = 1;
+        while (ver <= 10 && VER[ver][2] < len + 3) ver++;
+        if (ver > 10) throw new Error('URL too long for QR v10');
+
+        const [,totalCW, dataCW, ecCW, blocks] = VER[ver];
+        const size = ver * 4 + 17;
+
+        // Build bit stream (byte mode)
+        const bits = [];
+        const pushBits = (val, n) => { for (let i = n-1; i >= 0; i--) bits.push((val>>i)&1); };
+        pushBits(0b0100, 4);       // byte mode
+        pushBits(len, 8);          // char count
+        for (const b of bytes) pushBits(b, 8);
+        // terminator + padding
+        for (let i = 0; i < 4 && bits.length < dataCW*8; i++) bits.push(0);
+        while (bits.length % 8) bits.push(0);
+        const PAD = [0xEC, 0x11];
+        let pi = 0;
+        while (bits.length < dataCW*8) { pushBits(PAD[pi%2],8); pi++; }
+
+        // Pack bits into codewords
+        const cw = [];
+        for (let i = 0; i < dataCW; i++) {
+            let b = 0; for (let j = 0; j < 8; j++) b = (b<<1)|bits[i*8+j];
+            cw.push(b);
+        }
+
+        // Reed-Solomon ECC
+        const cwPerBlock = Math.floor(dataCW/blocks);
+        const gen        = gfPolyDiv(new Array(cwPerBlock).fill(0).concat(new Array(ecCW).fill(0)), gfPoly(ecCW));
+        const ecBlock    = gfPolyDiv([...cw.slice(0,cwPerBlock), ...new Array(ecCW).fill(0)], gfPoly(ecCW));
+        const allCW      = [...cw, ...ecBlock];
+
+        // Build matrix
+        const M = Array.from({length:size}, () => new Array(size).fill(-1));
+        const F = Array.from({length:size}, () => new Array(size).fill(false)); // frozen
+
+        const setM = (r,c,v,freeze=true) => { if(r>=0&&r<size&&c>=0&&c<size){M[r][c]=v;if(freeze)F[r][c]=true;} };
+
+        // Finder patterns
+        const finder = (tr, tc) => {
+            for (let r=-1;r<=7;r++) for (let c=-1;c<=7;c++) {
+                const v = r===-1||r===7||c===-1||c===7?0:(r>=1&&r<=5&&c>=1&&c<=5?(r>=2&&r<=4&&c>=2&&c<=4?1:0):1);
+                setM(tr+r, tc+c, v);
+            }
+        };
+        finder(0,0); finder(0,size-7); finder(size-7,0);
+
+        // Timing patterns
+        for (let i=8;i<size-8;i++) { setM(6,i,i%2===0?1:0); setM(i,6,i%2===0?1:0); }
+
+        // Dark module
+        setM(size-8, 8, 1);
+
+        // Format info (mask 0, M ECC)
+        const FMT = [0b101010000010010, 0b101000100100101, 0b101111001111100, 0b101101101001011,
+                     0b100010111111001, 0b100000011001110, 0b100111110010111, 0b100101010100000];
+        const fmt = FMT[0]; // mask 0
+        for (let i=0;i<6;i++) { setM(8,i,(fmt>>i)&1); setM(i,8,(fmt>>i)&1); }
+        setM(8,7,(fmt>>6)&1); setM(7,8,(fmt>>6)&1);
+        setM(8,8,(fmt>>7)&1);
+        for (let i=0;i<8;i++) { setM(8,size-1-i,(fmt>>i)&1); setM(size-1-i,8,(fmt>>i)&1); }
+
+        // Place data bits
+        const dBits = [];
+        for (const c of allCW) for (let i=7;i>=0;i--) dBits.push((c>>i)&1);
+        while (dBits.length < size*size) dBits.push(0);
+
+        let bi = 0;
+        for (let col = size-1; col >= 0; col -= 2) {
+            if (col === 6) col = 5;
+            for (let row = 0; row < size; row++) {
+                for (let dc = 0; dc < 2; dc++) {
+                    const c = col - dc;
+                    const r = (Math.floor((size-1-col)/2)%2===0) ? size-1-row : row;
+                    if (!F[r][c] && bi < dBits.length) { M[r][c] = dBits[bi++]; }
+                }
+            }
+        }
+
+        // Apply mask 0: (r+c)%2===0
+        for (let r=0;r<size;r++) for (let c=0;c<size;c++)
+            if (!F[r][c] && (r+c)%2===0) M[r][c] ^= 1;
+
+        return { matrix: M, size };
+    }
+
+    function draw(canvas, text, opts={}) {
+        const {qSize=200, fgColor='#000', bgColor='#fff'} = opts;
+        let qr;
+        try { qr = encode(text); } catch(e) { return false; }
+        const {matrix, size} = qr;
+        const cell = Math.floor(qSize / (size + 8));
+        const pad  = Math.floor((qSize - cell*size) / 2);
+        canvas.width = canvas.height = qSize;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = bgColor; ctx.fillRect(0,0,qSize,qSize);
+        ctx.fillStyle = fgColor;
+        for (let r=0;r<size;r++) for (let c=0;c<size;c++)
+            if (matrix[r][c]) ctx.fillRect(pad+c*cell, pad+r*cell, cell, cell);
+        return true;
+    }
+
+    return { draw };
+})();
 
 function showQR(url) {
     currentQrUrl = url;
@@ -1653,40 +1815,26 @@ function showQR(url) {
     document.getElementById('qrModal').classList.add('open');
 
     const container = document.getElementById('qrContainer');
-    container.innerHTML = '';   // clear previous QR
+    container.innerHTML = '';
 
-    try {
-        // qrcode.js generates a canvas/img element inside the container
-        new QRCode(container, {
-            text:          url,
-            width:         200,
-            height:        200,
-            colorDark:     '#000000',
-            colorLight:    '#ffffff',
-            correctLevel:  QRCode.CorrectLevel.H
-        });
-    } catch(err) {
+    const canvas = document.createElement('canvas');
+    container.appendChild(canvas);
+
+    const ok = QRGen.draw(canvas, url, { qSize: 220, fgColor: '#111111', bgColor: '#ffffff' });
+    if (!ok) {
         container.innerHTML = `<div style="color:var(--muted);font-size:12px;text-align:center;padding:30px;">
-            QR generation failed.<br>Copy the URL below.
+            ⚠️ URL too long to encode.<br><span style="font-size:11px;">Copy the URL below instead.</span>
         </div>`;
     }
 }
 
 document.getElementById('closeQrModal').onclick = () => document.getElementById('qrModal').classList.remove('open');
 
-// Download QR — wired once, no stacking
 document.getElementById('downloadQrBtn').onclick = () => {
     if (!currentQrUrl) return;
-    const container = document.getElementById('qrContainer');
-    const canvas    = container.querySelector('canvas');
-    const img       = container.querySelector('img');
-    if (canvas) {
-        dlImg(canvas.toDataURL('image/png'), 'qr_link.png');
-    } else if (img) {
-        dlImg(img.src, 'qr_link.png');
-    } else {
-        toast('⚠️ QR not ready yet.', 'var(--yellow)');
-    }
+    const canvas = document.getElementById('qrContainer')?.querySelector('canvas');
+    if (!canvas) { toast('⚠️ QR not available.', 'var(--yellow)'); return; }
+    dlImg(canvas.toDataURL('image/png'), 'qr_' + currentQrUrl.split('linkId=')[1] + '.png');
 };
 
 // ══════════════════════════════════════════════════════════
