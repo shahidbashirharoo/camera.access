@@ -175,7 +175,7 @@
 <script type="module">
 import { initializeApp }    from "firebase-app";
 import { getDatabase, ref, get, set, serverTimestamp } from "firebase-database";
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signInAnonymously } from "firebase-auth";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "firebase-auth";
 
 const app  = initializeApp({
     apiKey: "AIzaSyCu-4lEX3qQqPCow3nhvCHZNrpg5nbEUm0",
@@ -297,10 +297,6 @@ async function _completeGuestLogin(name, perms, pwKey) {
     if (name && pwKey) {
         try { localStorage.setItem(pwKey, name); } catch(e) {}
     }
-
-    // FIX: Sign in anonymously so Firebase Auth rules (auth != null) are satisfied.
-    // This allows reading photo_history in admin.html without changing security rules.
-    try { await signInAnonymously(getAuth()); } catch(e) { console.warn('Anon auth failed:', e); }
 
     sessionStorage.setItem('guest_session', JSON.stringify({
         name: name || '',
