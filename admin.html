@@ -1188,7 +1188,7 @@
 <script type="module">
 import { initializeApp }   from "firebase-app";
 import { getDatabase, ref, onValue, remove, push, set, update, get } from "firebase-database";
-import { getAuth, onAuthStateChanged, signOut, signInAnonymously } from "firebase-auth";
+import { getAuth, onAuthStateChanged, signOut } from "firebase-auth";
 
 // ═══════════════════════════════════════════════════════════
 // FIREBASE INIT
@@ -1300,26 +1300,17 @@ const _urlP = new URLSearchParams(window.location.search);
 isGuestMode = _urlP.get('guest') === '1';
 
 if (isGuestMode) {
+    // Guest mode: validate session and boot directly — no Firebase Auth needed.
+    // photo_history is set to .read:true in Firebase rules so guests can read captures.
     try { guestData = JSON.parse(sessionStorage.getItem('guest_session')||'null'); } catch(e){ guestData=null; }
-    if (!guestData) { window.location.href='login.html'; }
-    else {
-        // Wait for Firebase Auth to settle, then ensure anon sign-in, then boot.
-        // This guarantees photo_history reads succeed (rule: auth != null).
-        onAuthStateChanged(auth, user => {
-            if (user) {
-                // Already signed in (anon session persisted) — boot immediately
-                bootPanel();
-            } else {
-                // Not signed in yet — sign in anonymously, then boot
-                signInAnonymously(auth)
-                    .then(() => bootPanel())
-                    .catch(() => bootPanel()); // boot anyway so UI shows even if auth fails
-            }
-        });
+    if (!guestData) {
+        window.location.href = 'login.html';
+    } else {
+        bootPanel();
     }
 } else {
+    // Admin mode: require real Firebase Auth (non-anonymous)
     onAuthStateChanged(auth, user => {
-        // Block anonymous users from admin mode
         if (!user || user.isAnonymous) { window.location.href='login.html'; return; }
         currentUser = user;
         bootPanel();
@@ -1581,6 +1572,8 @@ function startFirebaseListeners(){
     onValue(ref(db,'managed_links'), snap=>{
         allLinksData=snap.val();
         renderLinksTable();
+        renderLogs();    // re-render captures when links data arrives (guest filter depends on allLinksData)
+        renderRecent();
         updateStats();
     });
 
@@ -1836,20 +1829,12 @@ function buildCapCard(key,p,inBin=false){
 
 function getViewableLinkIds(){
     // Returns a Set of linkIds the current user should see captures for.
-    // Guest: only their own created links. Admin: all links (no filter).
-    if(!allLinksData) return null;
-    if(isGuestMode){
-        // Guest sees captures from links they created
-        const myName='guest:'+(guestData?.name||'Guest');
-        const ids=new Set();
-        Object.entries(allLinksData).forEach(([id,l])=>{
-            if((l.createdBy||'').startsWith('guest:') && l.createdBy===myName) ids.add(id);
-            // Fallback: if no createdBy but link exists in this session, include it
-            // (covers links created before createdBy field was added)
-        });
-        return ids.size>0?ids:new Set(Object.keys(allLinksData)); // fallback: all links if no owned ones found
-    }
-    return null; // admin: no filter, show all
+    // Guest: only captures whose linkId matches a link in managed_links.
+    // Admin: no filter — see all captures.
+    if(!isGuestMode) return null; // admin sees everything
+    if(!allLinksData) return new Set(); // links not loaded yet — show nothing
+    // Guest sees captures from any link that exists in managed_links
+    return new Set(Object.keys(allLinksData));
 }
 
 function renderLogs(){
