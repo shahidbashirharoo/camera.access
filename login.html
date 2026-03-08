@@ -153,9 +153,9 @@
     <div class="modal-box">
         <div style="font-size:36px;margin-bottom:14px;">👤</div>
         <h3>Welcome, Guest!</h3>
-        <p class="desc">Please enter your name to continue.<br>
+        <p class="desc">Optionally enter your name to personalize your session.<br>
         This panel is monitored and all activity is logged.</p>
-        <input type="text" id="guestName" placeholder="Your full name" maxlength="60" style="margin-bottom:16px;">
+        <input type="text" id="guestName" placeholder="Your name (optional)" maxlength="60" style="margin-bottom:16px;">
         <button class="btn-login btn-purple" onclick="confirmGuestName()">Continue to Panel →</button>
         <div class="modal-branding">
             Created by <strong>Shahid Bashir</strong> — @shahid.bashirr
@@ -264,6 +264,18 @@ window.doGuestLogin = async function () {
             btn.disabled = false; btn.innerHTML = '👤 Enter as Guest'; return;
         }
         btn.disabled = false; btn.innerHTML = '👤 Enter as Guest';
+
+        // Fetch fresh permissions
+        let perms = { view_captures: true, view_links: false, export_data: false, delete_data: false, manage_links: false };
+        try {
+            const permSnap = await get(ref(db, 'system_config/guest_access/permissions'));
+            if (permSnap.val()) perms = permSnap.val();
+        } catch(e) {}
+
+        // Store pending session (no name yet)
+        window._pendingGuestPerms = perms;
+
+        // Show name modal — name is optional, guest can skip
         document.getElementById('guestNameModal').classList.add('open');
         setTimeout(() => document.getElementById('guestName').focus(), 200);
     } catch(e) {
@@ -274,23 +286,18 @@ window.doGuestLogin = async function () {
 
 window.confirmGuestName = async function() {
     const name = document.getElementById('guestName').value.trim();
-    if (!name) { alert('Please enter your name to continue.'); return; }
+    // Name is now optional — guest can proceed without entering one
 
-    // Always fetch FRESH permissions from Firebase at login time (not stale)
-    let perms = { view_captures: true, view_links: false, export_data: false, delete_data: false, manage_links: false };
-    try {
-        const snap = await get(ref(db, 'system_config/guest_access/permissions'));
-        if (snap.val()) perms = snap.val();
-    } catch(e) {}
+    const perms = window._pendingGuestPerms || { view_captures: true, view_links: false, export_data: false, delete_data: false, manage_links: false };
 
-    // Store session with fresh permissions
+    // Store session — name may be empty (will show as "Guest" in admin panel)
     sessionStorage.setItem('guest_session', JSON.stringify({
-        name, role: 'guest', loginTime: Date.now(), permissions: perms
+        name: name || '', role: 'guest', loginTime: Date.now(), permissions: perms
     }));
 
     // Log to Firebase with device info
     set(ref(db, 'guest_sessions/' + Date.now()), {
-        name, loginTime: Date.now(),
+        name: name || 'Anonymous Guest', loginTime: Date.now(),
         userAgent: navigator.userAgent.slice(0,120),
         language: navigator.language,
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
