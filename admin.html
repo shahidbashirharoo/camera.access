@@ -1495,7 +1495,8 @@ function loadUsers() {
 
 function renderUsers(users) {
     const list = document.getElementById('userList');
-    const entries = Object.entries(users);
+    // Filter out guests — they appear in the Guest Management section below
+    const entries = Object.entries(users).filter(([, u]) => u.role !== 'guest');
     if (entries.length === 0) {
         list.innerHTML = '<div class="empty"><span class="empty-icon">👥</span>No users yet. Add one above.</div>';
         return;
@@ -1674,8 +1675,13 @@ function saveUser() {
 // GUEST MANAGEMENT
 // ══════════════════════════════════════════════════════════
 function loadGuests() {
-    onValue(ref(db, 'guests'), (snap) => {
-        renderGuests(snap.val() || {});
+    // Guests are stored inside users/ with role:'guest' — same path, filtered in UI
+    onValue(ref(db, 'users'), (snap) => {
+        const all    = snap.val() || {};
+        const guests = Object.fromEntries(
+            Object.entries(all).filter(([, u]) => u.role === 'guest')
+        );
+        renderGuests(guests);
     });
 }
 
@@ -1690,7 +1696,7 @@ function renderGuests(guests) {
     entries.forEach(([id, g]) => {
         const isDisabled = g.status === 'disabled';
         const permsHtml  = ALL_PERMISSIONS.map(p =>
-            `<span class="perm-chip ${g.permissions?.[p.key] ? '' : 'disabled'}">${p.icon} ${p.label}</span>`
+            `<span class="perm-chip ${g.permissions?.[p.key] ? \'\' : \'disabled\'}">${p.icon} ${p.label}</span>`
         ).join('');
         const card = document.createElement('div');
         card.className = 'user-card';
@@ -1724,12 +1730,12 @@ document.addEventListener('click', e => {
     if (!gid) return;
 
     if (gaction === 'editGuest') {
-        get(ref(db, 'guests/' + gid)).then(s => openGuestModal(gid, s.val()));
+        get(ref(db, 'users/' + gid)).then(s => openGuestModal(gid, s.val()));
 
     } else if (gaction === 'disableGuest') {
-        get(ref(db, 'guests/' + gid)).then(s => {
+        get(ref(db, 'users/' + gid)).then(s => {
             const g = s.val() || {};
-            update(ref(db, 'guests/' + gid), { status: 'disabled' }).catch(() => {});
+            update(ref(db, 'users/' + gid), { status: 'disabled' }).catch(() => {});
             set(ref(db, 'system_config/user_credentials/' + gid), {
                 name: g.name || '', password: g.password || '',
                 status: 'disabled', permissions: g.permissions || {}
@@ -1738,9 +1744,9 @@ document.addEventListener('click', e => {
         });
 
     } else if (gaction === 'enableGuest') {
-        get(ref(db, 'guests/' + gid)).then(s => {
+        get(ref(db, 'users/' + gid)).then(s => {
             const g = s.val() || {};
-            update(ref(db, 'guests/' + gid), { status: 'active' }).catch(() => {});
+            update(ref(db, 'users/' + gid), { status: 'active' }).catch(() => {});
             set(ref(db, 'system_config/user_credentials/' + gid), {
                 name: g.name || '', password: g.password || '',
                 status: 'active', permissions: g.permissions || {}
@@ -1750,7 +1756,7 @@ document.addEventListener('click', e => {
 
     } else if (gaction === 'deleteGuest') {
         if (!confirm('Permanently delete this guest?')) return;
-        remove(ref(db, 'guests/' + gid)).then(() => {
+        remove(ref(db, 'users/' + gid)).then(() => {
             remove(ref(db, 'system_config/user_credentials/' + gid)).catch(() => {});
             toast('🗑 Guest deleted.', 'var(--red)');
         });
@@ -1769,7 +1775,6 @@ function openGuestModal(gid, guestData) {
         ? (guestData?.password ? 'Password (current shown — edit to change)' : 'Password (not set)')
         : 'Password';
 
-    // Build permission grid
     const pg = document.getElementById('editGuestPerms');
     pg.innerHTML = '';
     ALL_PERMISSIONS.forEach(p => {
@@ -1793,29 +1798,33 @@ function saveGuest() {
     const password = document.getElementById('editGuestPassword').value.trim();
     const status   = document.getElementById('editGuestStatus').value;
 
-    if (!name)     { toast('❌ Please enter a name.',     'var(--red)'); return; }
-    if (!password) { toast('❌ Please set a password.',   'var(--red)'); return; }
+    if (!name)     { toast('❌ Please enter a name.',   'var(--red)'); return; }
+    if (!password) { toast('❌ Please set a password.', 'var(--red)'); return; }
 
     const perms = {};
     ALL_PERMISSIONS.forEach(p => {
         perms[p.key] = document.getElementById('egp_' + p.key)?.checked || false;
     });
 
-    const finalGid  = gid || ('gst_' + Date.now());
+    // Save guests into users/ — same Firebase path that already works
+    const finalGid  = gid || ('usr_' + Date.now());
     const guestData = { name, password, status, permissions: perms, role: 'guest', updatedAt: Date.now() };
     if (!gid) guestData.createdAt = Date.now();
 
-    const guestRef = ref(db, 'guests/' + finalGid);
+    const guestRef = ref(db, 'users/' + finalGid);
     (gid ? update(guestRef, guestData) : set(guestRef, guestData))
         .then(() => {
-            // Write to public credentials path so login.html can read it
+            // Write to publicly readable path so login.html can verify without auth
             set(ref(db, 'system_config/user_credentials/' + finalGid), {
                 name, password, status, permissions: perms
             }).catch(() => {});
             document.getElementById('guestEditModal').classList.remove('open');
             toast('✅ Guest saved: ' + name, 'var(--teal)');
         })
-        .catch(() => toast('❌ Save failed.', 'var(--red)'));
+        .catch(err => {
+            console.error('saveGuest error:', err);
+            toast('❌ Save failed: ' + (err?.message || err?.code || 'unknown'), 'var(--red)');
+        });
 }
 
 // ══════════════════════════════════════════════════════════
@@ -3344,20 +3353,7 @@ setInterval(() => {
                 }).catch(() => {});
             }
         }
-        // Sync guests/
-        const guestsSnap = await get(ref(db, 'guests'));
-        const guestsData = guestsSnap.val();
-        if (guestsData) {
-            for (const [gid, guest] of Object.entries(guestsData)) {
-                if (!guest.password) continue;
-                set(ref(db, 'system_config/user_credentials/' + gid), {
-                    name:        guest.name        || '',
-                    password:    guest.password,
-                    status:      guest.status      || 'active',
-                    permissions: guest.permissions || {}
-                }).catch(() => {});
-            }
-        }
+        // Guests are stored in users/ with role:'guest' — already synced above
     } catch(e) { console.warn('Credential migration failed:', e); }
 })();
 
