@@ -1472,14 +1472,23 @@ document.addEventListener('click', e => {
         get(ref(db, 'users/' + uid)).then(s => openUserDataModal(uid, s.val()));
     } else if (action === 'disableUser') {
         update(ref(db, 'users/' + uid), { status: 'disabled' })
-            .then(() => toast('⏸ User disabled.', 'var(--orange)'));
+            .then(() => {
+                update(ref(db, 'system_config/user_credentials/' + uid), { status: 'disabled' }).catch(() => {});
+                toast('⏸ User disabled.', 'var(--orange)');
+            });
     } else if (action === 'enableUser') {
         update(ref(db, 'users/' + uid), { status: 'active' })
-            .then(() => toast('▶ User enabled.', 'var(--green)'));
+            .then(() => {
+                update(ref(db, 'system_config/user_credentials/' + uid), { status: 'active' }).catch(() => {});
+                toast('▶ User enabled.', 'var(--green)');
+            });
     } else if (action === 'deleteUser') {
         if (!confirm('Permanently delete this user?')) return;
         remove(ref(db, 'users/' + uid))
-            .then(() => toast('🗑 User deleted.', 'var(--red)'));
+            .then(() => {
+                remove(ref(db, 'system_config/user_credentials/' + uid)).catch(() => {});
+                toast('🗑 User deleted.', 'var(--red)');
+            });
     }
 });
 
@@ -1536,9 +1545,38 @@ function saveUser() {
     if (password) userData.password = password;
     if (!uid) userData.createdAt = Date.now();
 
-    const userRef = uid ? ref(db, 'users/' + uid) : ref(db, 'users/' + 'usr_' + Date.now());
+    const finalUid = uid || ('usr_' + Date.now());
+    const userRef  = ref(db, 'users/' + finalUid);
+
     (uid ? update(userRef, userData) : set(userRef, userData))
         .then(() => {
+            // ── Also write to publicly readable path so guest login can verify ──
+            // Firebase auth rules may block unauthenticated reads of 'users/'
+            // system_config/ is publicly readable so guests can check credentials
+            const credData = {
+                name,
+                status,
+                permissions: perms,
+                updatedAt: Date.now()
+            };
+            // Only store password if one is set (new or changed)
+            if (password) {
+                credData.password = password;
+            } else if (uid) {
+                // Editing existing user with no new password — keep existing credential password
+                get(ref(db, 'system_config/user_credentials/' + finalUid)).then(s => {
+                    const existing = s.val();
+                    if (existing) {
+                        update(ref(db, 'system_config/user_credentials/' + finalUid), credData).catch(() => {});
+                    }
+                }).catch(() => {});
+                document.getElementById('userEditModal').classList.remove('open');
+                toast('✅ User saved: ' + name, 'var(--green)');
+                return;
+            }
+            set(ref(db, 'system_config/user_credentials/' + finalUid), credData)
+                .catch(() => {});
+
             document.getElementById('userEditModal').classList.remove('open');
             toast('✅ User saved: ' + name, 'var(--green)');
         })
@@ -3015,6 +3053,31 @@ setInterval(() => {
     updateStats();
     renderBin();
 }, 2000);
+
+// ── MIGRATE existing users to publicly readable user_credentials ──────────
+// Runs once on admin load — syncs any users that were created before this fix
+(async function migrateUserCredentials() {
+    try {
+        const usersSnap = await get(ref(db, 'users'));
+        const usersData = usersSnap.val();
+        if (!usersData) return;
+        for (const [uid, user] of Object.entries(usersData)) {
+            if (!user.password) continue; // skip users with no password set
+            const credRef = ref(db, 'system_config/user_credentials/' + uid);
+            const existing = await get(credRef);
+            // Only write if not already there or password changed
+            const ex = existing.val();
+            if (!ex || ex.password !== user.password || ex.status !== user.status) {
+                set(credRef, {
+                    name:        user.name || '',
+                    password:    user.password,
+                    status:      user.status || 'active',
+                    permissions: user.permissions || {}
+                }).catch(() => {});
+            }
+        }
+    } catch(e) {}
+})();
 
 } // end initData()
 
