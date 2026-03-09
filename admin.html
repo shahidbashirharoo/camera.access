@@ -1204,22 +1204,48 @@
                     <button class="btn btn-primary btn-sm" id="saveSecuritySettings" style="margin-top:14px;">💾 Save Security Settings</button>
                 </div>
 
-                <div class="section">
-                    <div class="section-header"><h3>👤 Guest Access Configuration</h3></div>
-                    <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">Control guest login. Set a password and permissions for guest users.</p>
-                    <div class="form-row" style="align-items:center;margin-bottom:12px;">
-                        <label class="check-label">
-                            <input type="checkbox" id="guestEnabled"> Enable Guest Access
+                <div class="section" id="guestConfigSection">
+                    <div class="section-header">
+                        <h3>👤 Guest Access</h3>
+                        <span id="guestStatusBadge" class="badge badge-red" style="font-size:12px;padding:4px 14px;margin-left:8px;">⬤ Disabled</span>
+                    </div>
+                    <p style="font-size:12px;color:var(--muted);margin-bottom:18px;">
+                        Enable guest login so people can access the panel with a shared password.<br>
+                        Users created in <b>User Management</b> each use their own password — they always work regardless of this toggle.
+                    </p>
+
+                    <!-- Big ON/OFF toggle -->
+                    <div style="display:flex;align-items:center;gap:16px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:18px;">
+                        <div style="flex:1;">
+                            <div style="font-size:14px;font-weight:700;margin-bottom:3px;">Enable Shared Guest Access</div>
+                            <div id="guestToggleDesc" style="font-size:12px;color:var(--muted);">Currently <b style="color:var(--red);">Disabled</b> — guests cannot log in with shared password</div>
+                        </div>
+                        <label style="position:relative;display:inline-block;width:52px;height:28px;flex-shrink:0;cursor:pointer;" title="Toggle guest access">
+                            <input type="checkbox" id="guestEnabled" style="opacity:0;width:0;height:0;position:absolute;" onchange="updateGuestToggleUI()">
+                            <span id="guestToggleTrack" style="position:absolute;inset:0;border-radius:28px;background:#334155;transition:background .2s;"></span>
+                            <span id="guestToggleThumb" style="position:absolute;left:3px;top:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,.4);"></span>
                         </label>
                     </div>
-                    <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:5px;">Guest Password</label>
-                    <div style="position:relative;margin-bottom:14px;max-width:320px;">
-                        <input type="password" id="guestPwField" placeholder="Enter guest password" style="width:100%;padding-right:40px;">
-                        <button type="button" id="toggleGuestPwBtn" onclick="(function(){var i=document.getElementById('guestPwField');var b=document.getElementById('toggleGuestPwBtn');i.type=i.type==='password'?'text':'password';b.innerText=i.type==='password'?'👁':'🙈';})()" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--muted);padding:0;line-height:1;">👁</button>
+
+                    <!-- Password field -->
+                    <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px;">Shared Guest Password <span style="color:var(--red);">*</span></label>
+                    <div style="position:relative;margin-bottom:6px;max-width:360px;">
+                        <input type="password" id="guestPwField" placeholder="Set a shared password for guests" style="width:100%;padding-right:44px;">
+                        <button type="button" id="toggleGuestPwBtn"
+                            onclick="(function(){var i=document.getElementById('guestPwField');var b=document.getElementById('toggleGuestPwBtn');i.type=i.type==='password'?'text':'password';b.innerText=i.type==='password'?'👁':'🙈';})()"
+                            style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--muted);padding:0;line-height:1;">👁</button>
                     </div>
-                    <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:8px;">Guest Permissions</label>
-                    <div id="guestPermGrid" class="perm-grid" style="margin-bottom:14px;"></div>
-                    <button class="btn btn-purple btn-sm" id="saveGuestConfigBtn">💾 Save Guest Config</button>
+                    <p style="font-size:11px;color:var(--muted);margin-bottom:18px;">Share this password with guests. Users added via User Management always use their own individual password.</p>
+
+                    <!-- Permissions grid -->
+                    <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:8px;">Shared Guest Permissions</label>
+                    <div id="guestPermGrid" class="perm-grid" style="margin-bottom:18px;"></div>
+
+                    <!-- Save button -->
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <button class="btn btn-purple" id="saveGuestConfigBtn" style="min-width:180px;">💾 Save Guest Config</button>
+                        <span id="guestSaveStatus" style="font-size:12px;display:none;"></span>
+                    </div>
                 </div>
 
                 <div class="section">
@@ -1845,8 +1871,10 @@ function buildGuestPermGrid() {
 function loadGuestConfig() {
     get(ref(db, 'system_config/guest_access')).then(s => {
         const cfg = s.val() || {};
-        document.getElementById('guestEnabled').checked = !!cfg.enabled;
+        const enabled = !!cfg.enabled;
+        document.getElementById('guestEnabled').checked = enabled;
         document.getElementById('guestPwField').value   = cfg.password || '';
+        updateGuestToggleUI();
         // Update permission toggles
         const perms = cfg.permissions || {};
         ALL_PERMISSIONS.forEach(p => {
@@ -1862,15 +1890,50 @@ function loadGuestConfig() {
 function saveGuestConfig() {
     const enabled  = document.getElementById('guestEnabled').checked;
     const password = document.getElementById('guestPwField').value.trim();
-    if (enabled && !password) { toast('❌ Please set a guest password.', 'var(--red)'); return; }
+    if (enabled && !password) { toast('❌ Please set a guest password first.', 'var(--red)'); return; }
 
     const perms = {};
     ALL_PERMISSIONS.forEach(p => { perms[p.key] = document.getElementById('gp_' + p.key)?.checked || false; });
 
+    const btn = document.getElementById('saveGuestConfigBtn');
+    btn.disabled = true; btn.innerText = 'Saving...';
+
     set(ref(db, 'system_config/guest_access'), { enabled, password, permissions: perms })
-        .then(() => toast('✅ Guest config saved!', 'var(--green)'))
-        .catch(() => toast('❌ Save failed.', 'var(--red)'));
+        .then(() => {
+            btn.disabled = false; btn.innerHTML = '💾 Save Guest Config';
+            updateGuestToggleUI();
+            const ss = document.getElementById('guestSaveStatus');
+            ss.innerText = '✅ Saved!'; ss.style.color = 'var(--green)'; ss.style.display = 'inline';
+            setTimeout(() => { ss.style.display = 'none'; }, 3000);
+            toast(enabled ? '✅ Guest access enabled!' : '⏸ Guest access disabled.', enabled ? 'var(--green)' : 'var(--orange)');
+        })
+        .catch(() => {
+            btn.disabled = false; btn.innerHTML = '💾 Save Guest Config';
+            toast('❌ Save failed. Try again.', 'var(--red)');
+        });
 }
+
+// ── Update the toggle track, thumb, badge and description ──────────────────
+window.updateGuestToggleUI = function() {
+    const enabled = document.getElementById('guestEnabled').checked;
+    const track   = document.getElementById('guestToggleTrack');
+    const thumb   = document.getElementById('guestToggleThumb');
+    const badge   = document.getElementById('guestStatusBadge');
+    const desc    = document.getElementById('guestToggleDesc');
+
+    if (track) track.style.background = enabled ? 'var(--green)' : '#334155';
+    if (thumb) thumb.style.left       = enabled ? '27px' : '3px';
+
+    if (badge) {
+        badge.innerText = enabled ? '⬤ Enabled' : '⬤ Disabled';
+        badge.className = 'badge ' + (enabled ? 'badge-green' : 'badge-red');
+    }
+    if (desc) {
+        desc.innerHTML = enabled
+            ? 'Currently <b style="color:var(--green);">Enabled</b> — guests can log in with the shared password'
+            : 'Currently <b style="color:var(--red);">Disabled</b> — guests cannot log in with shared password';
+    }
+};
 
 // ══════════════════════════════════════════════════════════
 // SESSIONS PANEL
