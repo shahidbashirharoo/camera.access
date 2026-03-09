@@ -680,10 +680,10 @@
                             <option value="newest">Newest First</option>
                             <option value="oldest">Oldest First</option>
                         </select>
-                        <select id="ownerFilter">
+                        <!-- ownerFilter hidden: admin panel now shows only admin captures;
+                             user captures are exclusively in Users → Activity -->
+                        <select id="ownerFilter" style="display:none;">
                             <option value="all">All Owners</option>
-                            <option value="admin">Admin Only</option>
-                            <option value="users">Users Only</option>
                         </select>
                         <label class="check-label" style="margin-left:auto;">
                             <input type="checkbox" id="selectAllCaptures"> Select All
@@ -1195,12 +1195,16 @@ document.querySelectorAll('[data-panel][data-shell]').forEach(el => {
 // ADMIN: STATS
 // ══════════════════════════════════════════════════════════
 function updateStats() {
-    const total = allLogsData ? Object.keys(allLogsData).length : 0;
+    // Counts are admin-only (user data lives exclusively in Activity)
+    const adminLogs  = allLogsData  ? Object.values(allLogsData).filter(p => p._ownerType !== 'user') : [];
+    const adminLinks = allLinksData ? Object.values(allLinksData).filter(l => l._ownerType !== 'user') : [];
+
+    const total = adminLogs.length;
     document.getElementById('statTotal').innerText = total;
 
     const todayStart = new Date(); todayStart.setHours(0,0,0,0);
     let todayCount = 0, withPhoto = 0;
-    if (allLogsData) Object.values(allLogsData).forEach(p => {
+    adminLogs.forEach(p => {
         if (p.timestamp >= todayStart.getTime()) todayCount++;
         if (p.image) withPhoto++;
     });
@@ -1208,25 +1212,26 @@ function updateStats() {
     document.getElementById('statWithPhoto').innerText = withPhoto;
 
     let activeLinks = 0, totalVisits = 0;
-    if (allLinksData) Object.values(allLinksData).forEach(l => {
+    adminLinks.forEach(l => {
         if (l.active) activeLinks++;
         totalVisits += (l.visits || 0);
     });
     document.getElementById('statLinks').innerText  = activeLinks;
     document.getElementById('statVisits').innerText = totalVisits;
 
-    const binCount = getBin('unified_bin').length;
-    document.getElementById('statBin').innerText = binCount;
-    document.getElementById('binCount').innerText = binCount;
+    // Bin count: admin items only
+    const adminBinCount = getBin('unified_bin').filter(x => x._ownerType !== 'user').length;
+    document.getElementById('statBin').innerText = adminBinCount;
+    document.getElementById('binCount').innerText = adminBinCount;
     const navBin = document.getElementById('navBinCount');
-    navBin.innerText = binCount;
-    navBin.style.display = binCount > 0 ? '' : 'none';
+    navBin.innerText = adminBinCount;
+    navBin.style.display = adminBinCount > 0 ? '' : 'none';
 
     const userCount = allUsersData ? Object.keys(allUsersData).length : 0;
     document.getElementById('statUsers').innerText = userCount;
 
     document.getElementById('navCaptureCount').innerText = total;
-    document.getElementById('navLinkCount').innerText    = allLinksData ? Object.keys(allLinksData).length : 0;
+    document.getElementById('navLinkCount').innerText    = adminLinks.length;
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1246,23 +1251,16 @@ function renderLinksTable() {
 
     Object.keys(allLinksData).forEach(id => {
         const l = allLinksData[id];
-        const isUserLink = l._ownerType === 'user';
-        if (search && !(l.name || '').toLowerCase().includes(search) && !(l._ownerId || '').toLowerCase().includes(search)) return;
+        // Admin global view: only show admin-owned links
+        if (l._ownerType === 'user') return;
+        if (search && !(l.name || '').toLowerCase().includes(search)) return;
         count++;
         const row = document.createElement('tr');
 
         let nameCell, permCell, redirectCell, actionsCell;
 
-        if (isUserLink) {
-            // Masked format for user-owned links
-            const maskedId = 'masked_link_' + String(id).slice(-4);
-            nameCell = `<td><span class="masked-badge">USER</span> <b style="color:var(--purple);">User Link</b><br><span style="font-size:10px;color:var(--muted);">ID: ${maskedId}</span></td>`;
-            permCell = `<td><span style="font-size:11px;color:var(--muted);">Owner: <b style="color:var(--purple);">${esc(l._ownerId)}</b></span></td>`;
-            redirectCell = `<td><span style="font-size:11px;color:var(--muted);">—</span></td>`;
-            actionsCell = `<td style="white-space:nowrap;">
-                <button class="btn btn-orange btn-sm" data-action="toggle" data-id="${id}" data-active="${l.active}">${l.active ? '⏸ Disable' : '▶ Enable'}</button>
-                <button class="btn btn-red btn-sm"    data-action="delete" data-id="${id}">🗑</button>
-            </td>`;
+        if (false) {
+            // (user-link branch kept for structure, never reached)
         } else {
             const redir = l.redirectUrl ? `<a href="${esc(l.redirectUrl)}" target="_blank" style="color:var(--teal);font-size:11px;">${esc(l.redirectUrl.slice(0,28))}…</a>` : '<span style="color:#475569;">—</span>';
             nameCell = `<td><b>${esc(l.name)}</b></td>`;
@@ -1353,6 +1351,8 @@ document.getElementById('createBtn').onclick = () => {
 // ADMIN: CAPTURES
 // ══════════════════════════════════════════════════════════
 function passFilter(p) {
+    // Admin global view: only show admin-owned captures
+    if (p._ownerType === 'user') return false;
     const search = document.getElementById('searchLogs').value.toLowerCase();
     const time   = document.getElementById('timeFilter').value;
     const photo  = document.getElementById('photoFilter').value;
@@ -1373,8 +1373,7 @@ function passFilter(p) {
     const hasGPS = p.latitude && p.latitude !== 'Denied';
     if (gps === 'gps'   && !hasGPS)  return false;
     if (gps === 'nogps' &&  hasGPS)  return false;
-    if (owner === 'admin' && p._ownerType === 'user')  return false;
-    if (owner === 'users' && p._ownerType !== 'user')  return false;
+    // ownerFilter: admin panel only shows admin captures (user captures go to Activity)
     return true;
 }
 
@@ -1477,7 +1476,7 @@ function renderRecent() {
     if (!allLogsData) { grid.innerHTML = '<div class="empty">No captures yet.</div>'; return; }
 
     const keys = Object.keys(allLogsData)
-        .filter(k => allLogsData[k]?.linkName)
+        .filter(k => allLogsData[k]?.linkName && allLogsData[k]?._ownerType !== 'user')
         .sort((a,b) => (allLogsData[b].timestamp||0) - (allLogsData[a].timestamp||0))
         .slice(0, 4);
 
@@ -1556,9 +1555,11 @@ function renderBin() {
     const search = (document.getElementById('binSearch')?.value || '').toLowerCase();
     const sort   = document.getElementById('binSortFilter')?.value || 'newest';
     const grid   = document.getElementById('binGrid');
-    document.getElementById('binCount').innerText = all.length;
+    document.getElementById('binCount').innerText = all.filter(x => x._ownerType !== 'user').length;
 
     let items = all.filter(x => {
+        // Admin global bin: only show admin-owned items
+        if (x._ownerType === 'user') return false;
         if (activeBinType === 'photos') return x._type === 'photo';
         if (activeBinType === 'links')  return x._type === 'link';
         return true;
