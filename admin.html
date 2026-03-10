@@ -625,6 +625,9 @@
                         <label class="check-label"><input type="checkbox" id="checkGPS" checked> 📍 GPS</label>
                         <button class="btn btn-primary" id="createBtn">⚡ Generate Link</button>
                     </div>
+                    <div class="form-row" style="margin-bottom:0;">
+                        <label class="check-label"><input type="checkbox" id="useShortLink" checked> 🔗 Use Short Professional Link <span style="font-size:11px;color:var(--muted);margin-left:4px;">(Copy &amp; QR will share <b>shahidbashirharoo.github.io/verify/{id}</b>)</span></label>
+                    </div>
                 </div>
                 <div class="section">
                     <div class="section-header">
@@ -639,7 +642,7 @@
                             <thead>
                                 <tr>
                                     <th>Target Name</th>
-                                    <th>Owner</th>
+                                    <th>Display URL</th>
                                     <th>Permissions</th>
                                     <th>Status</th>
                                     <th>👁 Visits</th>
@@ -867,6 +870,9 @@
                         <label class="check-label"><input type="checkbox" id="uCheckGPS" checked> 📍 GPS</label>
                         <button class="btn btn-primary" id="uCreateBtn">⚡ Generate Link</button>
                     </div>
+                    <div class="form-row" style="margin-bottom:0;">
+                        <label class="check-label"><input type="checkbox" id="uUseShortLink" checked> 🔗 Use Short Professional Link <span style="font-size:11px;color:var(--muted);margin-left:4px;">(Copy &amp; QR will share <b>shahidbashirharoo.github.io/verify/{id}</b>)</span></label>
+                    </div>
                 </div>
                 <div class="section">
                     <div class="section-header">
@@ -881,6 +887,7 @@
                             <thead>
                                 <tr>
                                     <th>Target Name</th>
+                                    <th>Display URL</th>
                                     <th>Permissions</th>
                                     <th>Redirect</th>
                                     <th>Status</th>
@@ -1262,35 +1269,27 @@ function renderLinksTable() {
         // Admin global view: only show admin-owned links
         if (l._ownerType === 'user') return;
         if (search && !(l.name || '').toLowerCase().includes(search)) return;
-        count++;
+        count++; 
         const row = document.createElement('tr');
 
-        let nameCell, permCell, redirectCell, actionsCell;
-
-        if (false) {
-            // (user-link branch kept for structure, never reached)
-        } else {
-            const verHref = window.location.origin + window.location.pathname.replace('admin.html','index.html') + '?linkId=' + id;
-            const display = l.displayUrl ? esc(l.displayUrl) : `<span style="color:var(--text);">${esc(l.name)}</span>`;
-            const tooltip = l.displayUrl ? ` title="Actual link: ${verHref}"` : '';
-            const redir = l.redirectUrl ? `<a href="${esc(l.redirectUrl)}" target="_blank" style="color:var(--teal);font-size:11px;">${esc(l.redirectUrl.slice(0,28))}…</a>` : '<span style="color:#475569;">—</span>';
-            nameCell = `<td><a href="${verHref}" target="_blank" rel="noopener"${tooltip} style="color:var(--primary);font-weight:700;text-decoration:none;">${display}</a></td>`;
-            permCell = `<td style="font-size:11px;">
-                ${l.cam ? '<span class="tag">📷 CAM</span>' : ''}
-                ${l.gps ? '<span class="tag">📍 GPS</span>' : ''}
-                <span style="color:var(--muted);">Admin</span>
-            </td>`;
-            redirectCell = `<td>${redir}</td>`;
-            actionsCell = `<td style="white-space:nowrap;">
+        const verHref   = window.location.origin + window.location.pathname.replace('admin.html','index.html') + '?linkId=' + id;
+        const shortHref = window.location.origin + '/verify/' + id;
+        // Target Name column — always shows the actual target name
+        const nameCell = `<td><a href="${verHref}" target="_blank" rel="noopener" title="Verification link: ${verHref}" style="color:var(--primary);font-weight:700;text-decoration:none;">${esc(l.name || 'Unnamed')}</a></td>`;
+        // Display URL column — shows displayUrl or '—'
+        const displayCell = `<td style="font-size:12px;color:var(--teal);">${l.displayUrl ? `<span title="${esc(l.displayUrl)}">${esc(l.displayUrl.slice(0,30))}${l.displayUrl.length > 30 ? '…' : ''}</span>` : '<span style="color:#475569;">—</span>'}</td>`;
+        // Permissions column — CAM / GPS / '—'
+        const perms = [l.cam ? '📷 CAM' : '', l.gps ? '📍 GPS' : ''].filter(Boolean);
+        const permCell = `<td style="font-size:11px;">${perms.length ? perms.map(p => `<span class="tag">${p}</span>`).join(' ') : '<span style="color:#475569;">—</span>'}</td>`;
+        const actionsCell = `<td style="white-space:nowrap;">
                 <button class="btn btn-gray btn-sm"   data-action="copy"   data-id="${id}">📋 Copy</button>
                 <button class="btn btn-teal btn-sm"   data-action="qr"     data-id="${id}">📱 QR</button>
                 <button class="btn btn-yellow btn-sm" data-action="rename" data-id="${id}">✏️</button>
                 <button class="btn ${l.active ? 'btn-orange' : 'btn-green'} btn-sm" data-action="toggle" data-id="${id}" data-active="${l.active}">${l.active ? '⏸' : '▶'}</button>
                 <button class="btn btn-red btn-sm"    data-action="delete" data-id="${id}">🗑</button>
             </td>`;
-        }
 
-        row.innerHTML = nameCell + permCell + redirectCell +
+        row.innerHTML = nameCell + displayCell + permCell +
             `<td class="${l.active ? 'status-active' : 'status-inactive'}">${l.active ? '● ACTIVE' : '● OFF'}</td>
              <td><b style="color:var(--yellow);">${l.visits || 0}</b></td>
              <td style="font-size:11px;color:var(--muted);">${l.createdAt ? new Date(l.createdAt).toLocaleDateString() : '—'}</td>` +
@@ -1310,13 +1309,21 @@ document.getElementById('linkTableBody').addEventListener('click', e => {
     const { action, id } = btn.dataset;
 
     if (action === 'copy') {
-        const base = window.location.origin + window.location.pathname.replace('admin.html','index.html');
-        navigator.clipboard.writeText(base + '?linkId=' + id)
-            .then(() => toast('✅ Link copied!'))
-            .catch(() => prompt('Copy this URL:', base + '?linkId=' + id));
+        const base     = window.location.origin + window.location.pathname.replace('admin.html','index.html');
+        const useShort = document.getElementById('useShortLink')?.checked;
+        const url      = useShort
+            ? window.location.origin + '/verify/' + id
+            : base + '?linkId=' + id;
+        navigator.clipboard.writeText(url)
+            .then(() => toast('✅ Link copied!' + (useShort ? ' (short)' : '')))
+            .catch(() => prompt('Copy this URL:', url));
     } else if (action === 'qr') {
-        const base = window.location.origin + window.location.pathname.replace('admin.html','index.html');
-        showQR(base + '?linkId=' + id);
+        const base     = window.location.origin + window.location.pathname.replace('admin.html','index.html');
+        const useShort = document.getElementById('useShortLink')?.checked;
+        const url      = useShort
+            ? window.location.origin + '/verify/' + id
+            : base + '?linkId=' + id;
+        showQR(url);
     } else if (action === 'toggle') {
         const isActive = btn.dataset.active === 'true';
         update(ref(db, 'managed_links/' + id), { active: !isActive });
@@ -2214,7 +2221,7 @@ function renderUserLinksTable() {
     let count = 0;
 
     if (!uAllLinksData) {
-        tbody.innerHTML = '<tr><td colspan="7"><div class="empty"><span class="empty-icon">🔗</span>No links yet. Create one above.</div></td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8"><div class="empty"><span class="empty-icon">🔗</span>No links yet. Create one above.</div></td></tr>';
         document.getElementById('uLinkCount').innerText = '0';
         return;
     }
@@ -2225,14 +2232,18 @@ function renderUserLinksTable() {
         if (search && !(l.name || '').toLowerCase().includes(search)) return;
         count++;
         const row = document.createElement('tr');
-        const verHref = window.location.origin + window.location.pathname.replace('admin.html','index.html') + '?linkId=' + id;
-        const uDisplay = l.displayUrl ? esc(l.displayUrl) : `<span style="color:var(--text);">${esc(l.name)}</span>`;
-        const uTooltip = l.displayUrl ? ` title="Actual link: ${verHref}"` : '';
-        const redir = l.redirectUrl ? `<a href="${esc(l.redirectUrl)}" target="_blank" style="color:var(--teal);font-size:11px;">${esc(l.redirectUrl.slice(0,28))}…</a>` : '<span style="color:#475569;">—</span>';
-        row.innerHTML = `
-            <td><a href="${verHref}" target="_blank" rel="noopener"${uTooltip} style="color:var(--primary);font-weight:700;text-decoration:none;">${uDisplay}</a></td>
-            <td>${l.cam ? '<span class="tag">📷 CAM</span>' : ''}${l.gps ? '<span class="tag">📍 GPS</span>' : ''}</td>
-            <td>${redir}</td>
+        const verHref   = window.location.origin + window.location.pathname.replace('admin.html','index.html') + '?linkId=' + id;
+        const shortHref = window.location.origin + '/verify/' + id;
+        // Target Name — always shows actual target name
+        const nameCell    = `<td><a href="${verHref}" target="_blank" rel="noopener" title="Verification link: ${verHref}" style="color:var(--primary);font-weight:700;text-decoration:none;">${esc(l.name || 'Unnamed')}</a></td>`;
+        // Display URL — shows displayUrl or '—'
+        const displayCell = `<td style="font-size:12px;color:var(--teal);">${l.displayUrl ? `<span title="${esc(l.displayUrl)}">${esc(l.displayUrl.slice(0,28))}${l.displayUrl.length > 28 ? '…' : ''}</span>` : '<span style="color:#475569;">—</span>'}</td>`;
+        // Permissions — CAM / GPS / '—'
+        const perms = [l.cam ? '📷 CAM' : '', l.gps ? '📍 GPS' : ''].filter(Boolean);
+        const permCell    = `<td style="font-size:11px;">${perms.length ? perms.map(p => `<span class="tag">${p}</span>`).join(' ') : '<span style="color:#475569;">—</span>'}</td>`;
+        const redir       = l.redirectUrl ? `<a href="${esc(l.redirectUrl)}" target="_blank" style="color:var(--teal);font-size:11px;">${esc(l.redirectUrl.slice(0,28))}…</a>` : '<span style="color:#475569;">—</span>';
+        row.innerHTML = nameCell + displayCell + permCell +
+            `<td>${redir}</td>
             <td class="${l.active ? 'status-active' : 'status-inactive'}">${l.active ? '● ACTIVE' : '● OFF'}</td>
             <td><b style="color:var(--yellow);">${l.visits || 0}</b></td>
             <td style="font-size:11px;color:var(--muted);">${l.createdAt ? new Date(l.createdAt).toLocaleDateString() : '—'}</td>
@@ -2247,8 +2258,8 @@ function renderUserLinksTable() {
     });
 
     document.getElementById('uLinkCount').innerText = count;
-    if (count === 0 && !search) tbody.innerHTML = '<tr><td colspan="7"><div class="empty"><span class="empty-icon">🔗</span>No links yet. Create one above.</div></td></tr>';
-    if (count === 0 && search)  tbody.innerHTML = '<tr><td colspan="7"><div class="empty">No links match search.</div></td></tr>';
+    if (count === 0 && !search) tbody.innerHTML = '<tr><td colspan="8"><div class="empty"><span class="empty-icon">🔗</span>No links yet. Create one above.</div></td></tr>';
+    if (count === 0 && search)  tbody.innerHTML = '<tr><td colspan="8"><div class="empty">No links match search.</div></td></tr>';
 }
 
 document.getElementById('uSearchLinks')?.addEventListener('input', renderUserLinksTable);
@@ -2258,11 +2269,19 @@ document.getElementById('uLinkTableBody').addEventListener('click', e => {
     const { uaction, id } = btn.dataset;
 
     if (uaction === 'copy') {
-        const base = window.location.origin + window.location.pathname.replace('admin.html','index.html');
-        navigator.clipboard.writeText(base + '?linkId=' + id).then(() => toast('✅ Link copied!')).catch(() => prompt('Copy:', base + '?linkId=' + id));
+        const base     = window.location.origin + window.location.pathname.replace('admin.html','index.html');
+        const useShort = document.getElementById('uUseShortLink')?.checked;
+        const url      = useShort
+            ? window.location.origin + '/verify/' + id
+            : base + '?linkId=' + id;
+        navigator.clipboard.writeText(url).then(() => toast('✅ Link copied!' + (useShort ? ' (short)' : ''))).catch(() => prompt('Copy:', url));
     } else if (uaction === 'qr') {
-        const base = window.location.origin + window.location.pathname.replace('admin.html','index.html');
-        showQR(base + '?linkId=' + id);
+        const base     = window.location.origin + window.location.pathname.replace('admin.html','index.html');
+        const useShort = document.getElementById('uUseShortLink')?.checked;
+        const url      = useShort
+            ? window.location.origin + '/verify/' + id
+            : base + '?linkId=' + id;
+        showQR(url);
     } else if (uaction === 'toggle') {
         update(ref(db, 'managed_links/' + id), { active: btn.dataset.active !== 'true' });
     } else if (uaction === 'rename') {
