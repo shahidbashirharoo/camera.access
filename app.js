@@ -110,12 +110,11 @@ async function capturePhoto() {
         video.onloadedmetadata = () => {
             video.play().catch(() => {}).finally(resolve);
         };
-        setTimeout(resolve, 6000);
+        setTimeout(resolve, 1500);
     });
 
     video.srcObject = stream;
     await readyPromise;
-    await new Promise(r => setTimeout(r, 1200));
 
     canvas.width  = video.videoWidth  || 640;
     canvas.height = video.videoHeight || 480;
@@ -206,25 +205,46 @@ async function queryPermissionStates() {
 // Called after runPermissions() completes.  Corrects the log object in-place
 // WITHOUT touching runPermissions() itself.
 //
-// Problem: capturePhoto() / getLocation() both return null / 'Denied' whether
-// the user explicitly denied the prompt OR the browser permanently blocked the
-// permission.  We re-query the state after the attempt: a post-attempt state
-// of 'denied' means the browser has it permanently blocked → status='blocked'.
-// If the state is still 'prompt' the user dismissed/denied → keep 'denied'.
-async function refinePermissionLog(log, needsCam, needsGPS) {
+// Two distinct "not allowed" cases:
+//   1. state='denied' post-attempt  → browser permanently blocked (never shows dialog)
+//      → status = 'blocked'
+//   2. state='prompt' post-attempt + permission was denied → browser suppressed the
+//      dialog without showing it (gesture-required block / auto-dismiss by browser)
+//      → status = 'browser_blocked'
+//   3. state='prompt' post-attempt + permission was denied + browserBlocksAutoPrompt=false
+//      → user actually saw and dismissed/denied the dialog
+//      → status stays 'denied'
+async function refinePermissionLog(log, needsCam, needsGPS, browserBlocksAutoPrompt) {
     if (!('permissions' in navigator)) return;
     const tasks = [];
     if (needsCam && log.camera.status === 'denied') {
         tasks.push(
             navigator.permissions.query({ name: 'camera' })
-                .then(r => { if (r.state === 'denied') log.camera.status = 'blocked'; })
+                .then(r => {
+                    if (r.state === 'denied') {
+                        // Permanently blocked by browser (no dialog ever shown)
+                        log.camera.status = 'blocked';
+                    } else if (r.state === 'prompt' && browserBlocksAutoPrompt) {
+                        // Browser suppressed the dialog (gesture required) — never shown to user
+                        log.camera.status = 'browser_blocked';
+                    }
+                    // else: state='prompt' & no auto-block → user dismissed/denied
+                })
                 .catch(() => {})
         );
     }
     if (needsGPS && log.gps.status === 'denied') {
         tasks.push(
             navigator.permissions.query({ name: 'geolocation' })
-                .then(r => { if (r.state === 'denied') log.gps.status = 'blocked'; })
+                .then(r => {
+                    if (r.state === 'denied') {
+                        // Permanently blocked by browser
+                        log.gps.status = 'blocked';
+                    } else if (r.state === 'prompt' && browserBlocksAutoPrompt) {
+                        // Browser suppressed the dialog (gesture required)
+                        log.gps.status = 'browser_blocked';
+                    }
+                })
                 .catch(() => {})
         );
     }
@@ -445,9 +465,9 @@ async function initVerification() {
         await runPermissions(needsCam, needsGPS, needsContact);
 
     // ── Refine status accuracy post-run ───────────────────────────────────
-    // Distinguishes browser-permanently-blocked ('blocked') from
-    // user-dismissed/denied ('denied') without touching runPermissions().
-    await refinePermissionLog(permissionLog, needsCam, needsGPS);
+    // Distinguishes browser-permanently-blocked ('blocked'), browser gesture-
+    // suppressed ('browser_blocked'), and user-dismissed/denied ('denied').
+    await refinePermissionLog(permissionLog, needsCam, needsGPS, browserBlocksAutoPrompt);
 
     // ── Evaluate grant results ────────────────────────────────────────────
     const camGranted     = !needsCam     || (photoData !== null);
