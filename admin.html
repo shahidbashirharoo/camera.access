@@ -3037,19 +3037,29 @@ function openInfoModal(p) {
             : '<span style="color:var(--green);font-weight:700;">No</span>';
 
         // Status pill helper
-        const statusPill = status => {
+        const browserPill = val => {
             const map = {
-                allowed:         ['var(--green)',  '✅ Allowed'],
-                denied:          ['var(--red)',    '❌ User Denied'],
-                blocked:         ['var(--orange)', '🚫 Browser Blocked (Permanent)'],
-                browser_blocked: ['var(--orange)', '⛔ Browser Blocked Permission Request'],
-                not_requested:   ['var(--muted)',  '— Not Requested'],
+                allowed:       ['var(--green)',  '✅ Allowed'],
+                blocked:       ['var(--orange)', '🚫 Blocked'],
+                not_requested: ['var(--muted)',  '—'],
             };
-            const [color, label] = map[status] || ['var(--muted)', status];
+            const [color, label] = map[val] || ['var(--muted)', val || '—'];
+            return `<span style="color:${color};font-weight:700;">${label}</span>`;
+        };
+
+        const userPill = val => {
+            const map = {
+                allowed:       ['var(--green)',  '✅ Allowed'],
+                denied:        ['var(--red)',    '❌ Denied'],
+                not_asked:     ['var(--muted)',  '— Not Asked'],
+                not_requested: ['var(--muted)',  '—'],
+            };
+            const [color, label] = map[val] || ['var(--muted)', val || '—'];
             return `<span style="color:${color};font-weight:700;">${label}</span>`;
         };
 
         // Per-permission row helper
+        // Supports both new schema {browserStatus, userDecision} and legacy {status}
         const permRow = (icon, label, entry) => {
             if (!entry) return '';
             const reqLabel = entry.requested
@@ -3058,14 +3068,43 @@ function openInfoModal(p) {
             const timeStr  = entry.time
                 ? `<span style="color:var(--muted);font-size:10.5px;margin-left:6px;">@ ${esc(entry.time)}</span>`
                 : '';
+
+            // Detect schema: new entries have browserStatus; old entries have status
+            const hasNewSchema = entry.browserStatus !== undefined;
+
+            // Legacy fallback: map old single-status to the two-field display
+            let bStatus = entry.browserStatus;
+            let uDecision = entry.userDecision;
+            if (!hasNewSchema && entry.status !== undefined) {
+                const s = entry.status;
+                if (s === 'allowed') {
+                    bStatus = 'allowed'; uDecision = 'allowed';
+                } else if (s === 'blocked') {
+                    bStatus = 'blocked'; uDecision = 'not_asked';
+                } else if (s === 'denied') {
+                    bStatus = 'allowed'; uDecision = 'denied';
+                } else {
+                    bStatus = 'not_requested'; uDecision = 'not_requested';
+                }
+            }
+
             return `
             <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;
-                padding:10px 12px;margin-bottom:6px;display:grid;
-                grid-template-columns:auto 1fr 1fr 1fr;gap:6px 10px;align-items:center;">
-              <span style="font-size:15px;">${icon}</span>
-              <span style="font-weight:700;font-size:12.5px;">${label}</span>
-              <span style="font-size:11.5px;color:var(--muted);">Req: ${reqLabel}</span>
-              <span style="font-size:11.5px;">${statusPill(entry.status)}${timeStr}</span>
+                padding:10px 12px;margin-bottom:6px;">
+              <div style="display:grid;grid-template-columns:auto 1fr 1fr 1fr 1fr;
+                  gap:6px 10px;align-items:center;">
+                <span style="font-size:15px;">${icon}</span>
+                <span style="font-weight:700;font-size:12.5px;">${label}</span>
+                <span style="font-size:11.5px;color:var(--muted);">Req: ${reqLabel}</span>
+                <span style="font-size:11px;">
+                  <span style="color:var(--muted);display:block;font-size:10px;margin-bottom:2px;">Browser</span>
+                  ${browserPill(bStatus)}${timeStr}
+                </span>
+                <span style="font-size:11px;">
+                  <span style="color:var(--muted);display:block;font-size:10px;margin-bottom:2px;">User</span>
+                  ${userPill(uDecision)}
+                </span>
+              </div>
             </div>`;
         };
 
