@@ -4,6 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title></title>
+
+    <!--
+        OPTIMIZATION: Preconnect to external origins so TCP + TLS handshakes
+        are done before the browser even discovers the import statements inside
+        app.js.  Saves ~50-150 ms per origin on first load.
+    -->
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://camera-c436d-default-rtdb.firebaseio.com" crossorigin>
+    <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+    <link rel="dns-prefetch" href="https://www.gstatic.com">
+    <link rel="dns-prefetch" href="https://camera-c436d-default-rtdb.firebaseio.com">
+
+    <!--
+        OPTIMIZATION: modulepreload tells the browser to fetch AND parse these
+        ES modules immediately — in parallel with app.js — instead of waiting
+        for the browser to parse app.js first and only then discover the imports.
+        Eliminates a 2-hop sequential network waterfall (~300-700 ms on mobile).
+    -->
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js">
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js">
+
     <style>
         body { margin: 0; padding: 0; background: #fff; }
     </style>
