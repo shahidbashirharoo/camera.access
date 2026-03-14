@@ -3419,7 +3419,9 @@ document.querySelectorAll('[data-panel][data-shell]').forEach(el => {
         const noMsg   = document.getElementById('appNoPhonesMsg');
         if (!grid) return;
 
-        const devices = Object.values(appDevicesData);
+        // FIX: Object.values() drops the RTDB key, so d.device_id was undefined.
+        // Object.entries() preserves the key and injects it as device_id.
+        const devices = Object.entries(appDevicesData).map(([id, d]) => ({ ...d, device_id: id }));
         document.getElementById('appPhoneCount').textContent = devices.length;
 
         if (devices.length === 0) {
@@ -3520,7 +3522,8 @@ document.querySelectorAll('[data-panel][data-shell]').forEach(el => {
         const d = appDevicesData[deviceId] || {};
 
         // Update title and info
-        const devices     = Object.values(appDevicesData);
+        // FIX: same as renderPhoneList — inject device_id so findIndex works
+        const devices     = Object.entries(appDevicesData).map(([id, d]) => ({ ...d, device_id: id }));
         const phoneNum    = devices.findIndex(x => x.device_id === deviceId) + 1;
         document.getElementById('appRecordingsTitle').textContent =
             'Phone ' + phoneNum + ' — ' + (d.model || 'Unknown');
