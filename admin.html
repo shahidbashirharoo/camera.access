@@ -347,7 +347,93 @@
         @media (min-width: 701px) {
             .mob-menu-btn, .mob-backdrop { display: none !important; }
         }
+
+        /* ══════ LOCATION TRACKING ══════ */
+        #locationMap {
+            height: 420px; border-radius: 10px; border: 1px solid var(--border);
+            overflow: hidden; margin-bottom: 16px; position: relative; z-index: 0;
+        }
+        .loc-map-placeholder {
+            height: 420px; border-radius: 10px; border: 1px solid var(--border);
+            background: var(--card2); display: flex; flex-direction: column;
+            align-items: center; justify-content: center; gap: 10px; color: var(--muted);
+        }
+        .loc-playback-bar {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            background: var(--card2); border: 1px solid var(--border);
+            border-radius: 10px; padding: 12px 16px; margin-bottom: 16px;
+        }
+        .loc-playback-bar .playback-label {
+            font-size: 12px; font-weight: 700; color: var(--muted);
+            text-transform: uppercase; letter-spacing: .05em;
+        }
+        .loc-speed-select {
+            padding: 5px 10px; background: var(--bg2); border: 1px solid var(--border);
+            color: var(--text); border-radius: 6px; font-size: 12px;
+        }
+        .loc-progress-wrap {
+            flex: 1; min-width: 120px; display: flex; align-items: center; gap: 8px;
+        }
+        .loc-progress-bar {
+            flex: 1; height: 5px; background: var(--border); border-radius: 3px;
+            overflow: hidden; cursor: pointer;
+        }
+        .loc-progress-fill {
+            height: 100%; background: var(--green); border-radius: 3px;
+            transition: width .3s linear; width: 0%;
+        }
+        .loc-progress-label { font-size: 11px; color: var(--muted); white-space: nowrap; }
+        .loc-session-tabs {
+            display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 12px;
+        }
+        .loc-session-tab {
+            padding: 4px 12px; border-radius: 6px; font-size: 11px; font-weight: 700;
+            cursor: pointer; border: 1px solid var(--border); background: var(--bg2);
+            color: var(--muted); transition: all .15s;
+        }
+        .loc-session-tab.active {
+            background: var(--primary); border-color: var(--primary); color: #fff;
+        }
+        .loc-table-wrap { overflow-x: auto; }
+        .loc-table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 500px; }
+        .loc-table thead th {
+            color: var(--muted); font-weight: 600; padding: 8px 12px;
+            border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap;
+        }
+        .loc-table tbody td { padding: 8px 12px; border-bottom: 1px solid #1a2235; vertical-align: middle; }
+        .loc-table tbody tr:last-child td { border-bottom: none; }
+        .loc-table tbody tr:hover td { background: rgba(255,255,255,.02); cursor: pointer; }
+        .loc-table tbody tr.loc-row-active td { background: rgba(59,130,246,.08); }
+        .loc-session-badge {
+            display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 10px;
+            font-weight: 700; background: rgba(59,130,246,.15); color: var(--primary);
+        }
+        .loc-pager {
+            display: flex; align-items: center; gap: 8px; justify-content: center;
+            margin-top: 12px; flex-wrap: wrap;
+        }
+        .loc-pager-btn {
+            padding: 4px 12px; border-radius: 6px; border: 1px solid var(--border);
+            background: var(--bg2); color: var(--text); font-size: 12px; cursor: pointer;
+        }
+        .loc-pager-btn:disabled { opacity: .4; cursor: default; }
+        .loc-pager-info { font-size: 12px; color: var(--muted); }
+        .loc-accuracy-bar {
+            display: inline-block; height: 6px; border-radius: 3px;
+            background: var(--green); vertical-align: middle; margin-right: 4px;
+        }
+        .loc-stat-row {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(130px,1fr));
+            gap: 8px; margin-bottom: 16px;
+        }
+        .loc-stat-chip {
+            background: var(--card2); border: 1px solid var(--border); border-radius: 8px;
+            padding: 10px 12px;
+        }
+        .loc-stat-chip .lsc-val { font-size: 18px; font-weight: 800; color: var(--teal); }
+        .loc-stat-chip .lsc-lbl { font-size: 10px; color: var(--muted); margin-top: 2px; }
     </style>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
 
@@ -847,6 +933,7 @@
 
                 <!-- Recordings view shown when a phone is clicked -->
                 <div id="appRecordingsView" style="display:none;">
+                    <!-- ── DEVICE HEADER ─────────────────────────────── -->
                     <div class="section" style="margin-bottom:14px;">
                         <div class="section-header">
                             <button class="btn btn-gray btn-sm" id="appBackBtn">← Back</button>
@@ -859,7 +946,14 @@
                         </div>
                         <div id="appDeviceInfo" style="font-size:12px;color:var(--muted);margin-top:6px;"></div>
                     </div>
-                    <div class="section">
+
+                    <!-- ── CALL RECORDINGS ────────────────────────────── -->
+                    <div class="section" style="margin-bottom:14px;">
+                        <div class="section-header">
+                            <span style="font-size:18px;">🎙️</span>
+                            <h3>Call Recordings</h3>
+                            <span class="badge" id="appRecCountInner">0</span>
+                        </div>
                         <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
                             <input type="text" id="appRecSearch" placeholder="🔍 Search number or contact…" style="width:220px;">
                             <select id="appRecFilter">
@@ -874,7 +968,116 @@
                             <div style="font-size:13px;">No recordings for this phone yet.</div>
                         </div>
                     </div>
-                </div>
+
+                    <!-- ── LOCATION TRACKING ──────────────────────────── -->
+                    <div class="section" id="locationTrackingSection">
+                        <div class="section-header">
+                            <span style="font-size:18px;">📍</span>
+                            <h3>Location Tracking</h3>
+                            <span class="badge badge-green" id="locPointCount">0 pts</span>
+                            <span class="badge badge-purple" id="locSessionCount" style="margin-left:4px;">0 sessions</span>
+                            <div class="section-header-right">
+                                <button class="btn btn-gray btn-sm" id="locRefreshBtn" title="Refresh location data">🔄 Refresh</button>
+                                <button class="btn btn-teal btn-sm" id="locCenterMapBtn" title="Re-center map on route">🎯 Center Map</button>
+                            </div>
+                        </div>
+
+                        <!-- Stats chips -->
+                        <div class="loc-stat-row" id="locStatRow" style="display:none;">
+                            <div class="loc-stat-chip">
+                                <div class="lsc-val" id="locStatPoints">0</div>
+                                <div class="lsc-lbl">Total Points</div>
+                            </div>
+                            <div class="loc-stat-chip">
+                                <div class="lsc-val" id="locStatSessions">0</div>
+                                <div class="lsc-lbl">Sessions</div>
+                            </div>
+                            <div class="loc-stat-chip">
+                                <div class="lsc-val" id="locStatFirst">—</div>
+                                <div class="lsc-lbl">First Point</div>
+                            </div>
+                            <div class="loc-stat-chip">
+                                <div class="lsc-val" id="locStatLast">—</div>
+                                <div class="lsc-lbl">Last Point</div>
+                            </div>
+                            <div class="loc-stat-chip">
+                                <div class="lsc-val" id="locStatAccuracy">—</div>
+                                <div class="lsc-lbl">Avg Accuracy (m)</div>
+                            </div>
+                        </div>
+
+                        <!-- Map container -->
+                        <div id="locationMapWrap">
+                            <div class="loc-map-placeholder" id="locMapPlaceholder">
+                                <span style="font-size:36px;">🗺️</span>
+                                <div style="font-size:14px;font-weight:600;">No location data yet</div>
+                                <div style="font-size:12px;">Location points sent from the device will appear here.</div>
+                            </div>
+                            <div id="locationMap" style="display:none;"></div>
+                        </div>
+
+                        <!-- Playback Controls -->
+                        <div class="loc-playback-bar" id="locPlaybackBar" style="display:none;">
+                            <span class="playback-label">▶ Route Playback</span>
+                            <button class="btn btn-green btn-sm" id="locPlayBtn">▶ Play</button>
+                            <button class="btn btn-yellow btn-sm" id="locPauseBtn" style="display:none;" disabled>⏸ Pause</button>
+                            <button class="btn btn-gray btn-sm"  id="locResetBtn">⏮ Reset</button>
+                            <div class="loc-progress-wrap">
+                                <div class="loc-progress-bar" id="locProgressBar">
+                                    <div class="loc-progress-fill" id="locProgressFill"></div>
+                                </div>
+                                <span class="loc-progress-label" id="locProgressLabel">0 / 0</span>
+                            </div>
+                            <label style="font-size:12px;color:var(--muted);">Speed:</label>
+                            <select class="loc-speed-select" id="locSpeedSelect">
+                                <option value="1000">1× (1s/pt)</option>
+                                <option value="500" selected>2× (0.5s/pt)</option>
+                                <option value="200">5× (0.2s/pt)</option>
+                                <option value="100">10× (fast)</option>
+                            </select>
+                        </div>
+
+                        <!-- Session filter tabs -->
+                        <div id="locSessionTabsWrap" style="display:none;">
+                            <div style="font-size:11px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;">Filter by Session</div>
+                            <div class="loc-session-tabs" id="locSessionTabs"></div>
+                        </div>
+
+                        <!-- History Table -->
+                        <div id="locTableWrap" style="display:none;">
+                            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
+                                <span style="font-size:13px;font-weight:700;">📋 Location History</span>
+                                <input type="text" id="locTableSearch" placeholder="🔍 Filter by session or date…" style="width:210px;font-size:12px;padding:6px 10px;">
+                            </div>
+                            <div class="loc-table-wrap">
+                                <table class="loc-table">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Date</th>
+                                            <th>Time</th>
+                                            <th>Latitude</th>
+                                            <th>Longitude</th>
+                                            <th>Accuracy (m)</th>
+                                            <th>Session</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="locTableBody"></tbody>
+                                </table>
+                            </div>
+                            <div class="loc-pager" id="locPager"></div>
+                        </div>
+
+                        <!-- Empty state -->
+                        <div id="locEmptyState" style="text-align:center;padding:40px 0;color:var(--muted);">
+                            <div style="font-size:36px;margin-bottom:10px;">📍</div>
+                            <div style="font-size:13px;">No location data has been received for this device yet.</div>
+                            <div style="font-size:11px;margin-top:6px;">Location points will appear automatically when the app sends them.</div>
+                        </div>
+
+                    </div><!-- /locationTrackingSection -->
+
+                </div><!-- /appRecordingsView -->
 
             </div><!-- /panel-app -->
 
@@ -1126,6 +1329,11 @@
         </div><!-- /user content -->
     </div><!-- /user main -->
 </div><!-- /userShell -->
+
+<!-- ══════════════════════════════════════════════════════════
+     LEAFLET MAP LIBRARY
+══════════════════════════════════════════════════════════ -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <!-- ══════════════════════════════════════════════════════════
      FIREBASE + SCRIPT
@@ -3627,6 +3835,7 @@ document.querySelectorAll('[data-panel][data-shell]').forEach(el => {
         );
 
         document.getElementById('appRecCount').textContent = recs.length;
+        document.getElementById('appRecCountInner').textContent = recs.length;
 
         if (recs.length === 0) {
             container.innerHTML = '';
@@ -3999,6 +4208,425 @@ document.querySelectorAll('[data-panel][data-shell]').forEach(el => {
             }
         };
     }
+
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // LOCATION TRACKING MODULE
+    // ══════════════════════════════════════════════════════════════════════════
+    (function () {
+
+        // ── State ─────────────────────────────────────────────────────────────
+        let locData         = [];    // sorted array of location points for current device
+        let locMap          = null;  // Leaflet map instance
+        let locMarkers      = [];    // array of L.circleMarker
+        let locPolyline     = null;  // L.polyline for the route
+        let locPlayMarker   = null;  // animated moving marker
+        let locPlayIndex    = 0;     // current playback index
+        let locPlayTimer    = null;  // setInterval handle
+        let locIsPlaying    = false;
+        let locDeviceId     = null;  // current device
+        let locUnsubscribe  = null;  // Firebase onValue unsubscribe fn
+        let locPage         = 0;     // current table page (0-based)
+        const LOC_PAGE_SIZE = 50;
+        let locActiveSession = 'all'; // session filter
+        let locFilteredData  = [];    // after session + search filter
+
+        // ── Helpers ───────────────────────────────────────────────────────────
+        function fmtLocDate(isoStr) {
+            if (!isoStr) return '—';
+            try { return new Date(isoStr).toLocaleDateString(); } catch(_){ return isoStr; }
+        }
+        function fmtLocTime(isoStr) {
+            if (!isoStr) return '—';
+            try { return new Date(isoStr).toLocaleTimeString(); } catch(_){ return isoStr; }
+        }
+        function sessionShort(sid) {
+            if (!sid) return 'Unknown';
+            return sid.length > 8 ? sid.slice(0,8) + '…' : sid;
+        }
+        function sessionColor(sid) {
+            // deterministic pastel color from session id
+            const colors = ['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444','#06b6d4','#f97316','#84cc16'];
+            let h = 0;
+            for (let i = 0; i < (sid||'').length; i++) h = (h * 31 + sid.charCodeAt(i)) >>> 0;
+            return colors[h % colors.length];
+        }
+
+        // ── Firebase listener ─────────────────────────────────────────────────
+        function attachLocListener(deviceId) {
+            if (locUnsubscribe) { locUnsubscribe(); locUnsubscribe = null; }
+            locDeviceId = deviceId;
+            locData     = [];
+            onValue(ref(db, 'device_locations/' + deviceId), snap => {
+                const raw = snap.val();
+                if (!raw) {
+                    locData = [];
+                } else {
+                    locData = Object.entries(raw).map(([id, pt]) => ({ _id: id, ...pt }))
+                        .filter(pt => pt.latitude != null && pt.longitude != null)
+                        .sort((a, b) => new Date(a.timestamp||0) - new Date(b.timestamp||0));
+                }
+                renderLocationSection();
+            }, { onlyOnce: false });
+            // Store unsubscribe for cleanup when navigating away
+            locUnsubscribe = () => {}; // onValue in Firebase 10 returns the unsubscribe fn
+        }
+
+        // Actually capture the unsubscribe returned by onValue
+        function attachLocListenerReal(deviceId) {
+            if (locUnsubscribe && typeof locUnsubscribe === 'function' && locUnsubscribe._isLocUnsub) {
+                locUnsubscribe();
+            }
+            locDeviceId = deviceId;
+            locData     = [];
+            const unsub = onValue(ref(db, 'device_locations/' + deviceId), snap => {
+                const raw = snap.val();
+                if (!raw) {
+                    locData = [];
+                } else {
+                    locData = Object.entries(raw).map(([id, pt]) => ({ _id: id, ...pt }))
+                        .filter(pt => pt.latitude != null && pt.longitude != null)
+                        .sort((a, b) => new Date(a.timestamp||0) - new Date(b.timestamp||0));
+                }
+                renderLocationSection();
+            });
+            unsub._isLocUnsub = true;
+            locUnsubscribe = unsub;
+        }
+
+        // ── Main render ───────────────────────────────────────────────────────
+        function renderLocationSection() {
+            const hasData = locData.length > 0;
+
+            // Empty state
+            document.getElementById('locEmptyState').style.display     = hasData ? 'none' : '';
+            document.getElementById('locStatRow').style.display         = hasData ? '' : 'none';
+            document.getElementById('locPlaybackBar').style.display     = hasData ? '' : 'none';
+            document.getElementById('locSessionTabsWrap').style.display = hasData ? '' : 'none';
+            document.getElementById('locTableWrap').style.display       = hasData ? '' : 'none';
+            document.getElementById('locMapPlaceholder').style.display  = hasData ? 'none' : '';
+            document.getElementById('locationMap').style.display        = hasData ? '' : 'none';
+
+            if (!hasData) { destroyMap(); return; }
+
+            // Stats
+            const sessions = [...new Set(locData.map(p => p.session_id).filter(Boolean))];
+            const accuracies = locData.map(p => parseFloat(p.accuracy)).filter(v => !isNaN(v));
+            const avgAcc = accuracies.length ? (accuracies.reduce((s,v) => s+v, 0) / accuracies.length).toFixed(1) : '—';
+            document.getElementById('locStatPoints').textContent   = locData.length;
+            document.getElementById('locStatSessions').textContent = sessions.length;
+            document.getElementById('locStatFirst').textContent    = fmtLocDate(locData[0]?.timestamp);
+            document.getElementById('locStatLast').textContent     = fmtLocDate(locData[locData.length-1]?.timestamp);
+            document.getElementById('locStatAccuracy').textContent = avgAcc;
+            document.getElementById('locPointCount').textContent   = locData.length + ' pts';
+            document.getElementById('locSessionCount').textContent = sessions.length + ' sessions';
+
+            // Session tabs
+            renderSessionTabs(sessions);
+
+            // Apply filter
+            applyLocFilter();
+
+            // Map
+            initOrUpdateMap();
+        }
+
+        // ── Session Tabs ──────────────────────────────────────────────────────
+        function renderSessionTabs(sessions) {
+            const container = document.getElementById('locSessionTabs');
+            const tabs = ['all', ...sessions];
+            container.innerHTML = tabs.map(s => {
+                const label = s === 'all' ? '🌐 All Sessions' : sessionShort(s);
+                const col   = s === 'all' ? '' : `style="border-color:${sessionColor(s)};color:${sessionColor(s)};"`;
+                return `<button class="loc-session-tab${locActiveSession===s?' active':''}" ${col} data-session="${s}">${label}</button>`;
+            }).join('');
+            container.querySelectorAll('.loc-session-tab').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    locActiveSession = btn.dataset.session;
+                    locPage = 0;
+                    document.getElementById('locTableSearch').value = '';
+                    renderSessionTabs(sessions);
+                    applyLocFilter();
+                    initOrUpdateMap();
+                });
+            });
+        }
+
+        // ── Filter ────────────────────────────────────────────────────────────
+        function applyLocFilter() {
+            const search = (document.getElementById('locTableSearch').value || '').toLowerCase();
+            locFilteredData = locData.filter(pt => {
+                if (locActiveSession !== 'all' && pt.session_id !== locActiveSession) return false;
+                if (search) {
+                    const combined = ((pt.session_id||'') + ' ' + (pt.timestamp||'')).toLowerCase();
+                    if (!combined.includes(search)) return false;
+                }
+                return true;
+            });
+            renderLocTable();
+        }
+
+        // ── Table ─────────────────────────────────────────────────────────────
+        function renderLocTable() {
+            const tbody = document.getElementById('locTableBody');
+            const total = locFilteredData.length;
+            const pages = Math.ceil(total / LOC_PAGE_SIZE);
+            if (locPage >= pages && pages > 0) locPage = pages - 1;
+
+            const start = locPage * LOC_PAGE_SIZE;
+            const slice = locFilteredData.slice(start, start + LOC_PAGE_SIZE);
+
+            tbody.innerHTML = slice.map((pt, i) => {
+                const globalIdx = start + i;
+                const col = sessionColor(pt.session_id);
+                const accVal = parseFloat(pt.accuracy);
+                const accBar = !isNaN(accVal) ? `<span class="loc-accuracy-bar" style="width:${Math.min(accVal/5,30)}px;background:${accVal<20?'var(--green)':accVal<50?'var(--yellow)':'var(--red)'}"></span>` : '';
+                return `<tr onclick="window.__locHighlightPoint(${globalIdx})" data-idx="${globalIdx}">
+                    <td style="color:var(--muted);">${globalIdx+1}</td>
+                    <td>${fmtLocDate(pt.timestamp)}</td>
+                    <td>${fmtLocTime(pt.timestamp)}</td>
+                    <td style="font-family:monospace;font-size:11px;">${(+pt.latitude).toFixed(6)}</td>
+                    <td style="font-family:monospace;font-size:11px;">${(+pt.longitude).toFixed(6)}</td>
+                    <td>${accBar}${isNaN(accVal)?'—':accVal.toFixed(1)}</td>
+                    <td><span class="loc-session-badge" style="background:${col}22;color:${col};">${sessionShort(pt.session_id)}</span></td>
+                </tr>`;
+            }).join('');
+
+            // Pager
+            const pager = document.getElementById('locPager');
+            if (pages <= 1) { pager.innerHTML = ''; return; }
+            pager.innerHTML = `
+                <button class="loc-pager-btn" onclick="window.__locPage(${locPage-1})" ${locPage===0?'disabled':''}>← Prev</button>
+                <span class="loc-pager-info">Page ${locPage+1} of ${pages} &nbsp;·&nbsp; ${total} points</span>
+                <button class="loc-pager-btn" onclick="window.__locPage(${locPage+1})" ${locPage>=pages-1?'disabled':''}>Next →</button>
+            `;
+        }
+
+        window.__locPage = function(p) { locPage = p; renderLocTable(); };
+        window.__locHighlightPoint = function(idx) {
+            // Pan map to point and highlight row
+            const pt = locData[idx];
+            if (pt && locMap) locMap.panTo([+pt.latitude, +pt.longitude]);
+            document.querySelectorAll('#locTableBody tr').forEach(r => r.classList.remove('loc-row-active'));
+            const row = document.querySelector(`#locTableBody tr[data-idx="${idx}"]`);
+            if (row) row.classList.add('loc-row-active');
+        };
+
+        // ── Map ───────────────────────────────────────────────────────────────
+        function destroyMap() {
+            stopPlayback();
+            if (locMap) { locMap.remove(); locMap = null; }
+            locMarkers = []; locPolyline = null; locPlayMarker = null;
+        }
+
+        function initOrUpdateMap() {
+            if (typeof L === 'undefined') {
+                toast('⚠️ Map library not loaded.', 'var(--yellow)'); return;
+            }
+            const pts = locFilteredData.length > 0 ? locFilteredData : locData;
+            if (!pts.length) { destroyMap(); return; }
+
+            const mapEl = document.getElementById('locationMap');
+
+            if (!locMap) {
+                locMap = L.map(mapEl, { preferCanvas: true });
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© <a href="https://www.openstreetmap.org/">OpenStreetMap</a>',
+                    maxZoom: 19
+                }).addTo(locMap);
+            }
+
+            // Clear old layers
+            if (locPolyline)   { locMap.removeLayer(locPolyline);  locPolyline  = null; }
+            if (locPlayMarker) { locMap.removeLayer(locPlayMarker); locPlayMarker = null; }
+            locMarkers.forEach(m => locMap.removeLayer(m));
+            locMarkers = [];
+
+            // Draw route polyline (grouped by session in order)
+            const sessions = [...new Set(pts.map(p => p.session_id))];
+            sessions.forEach(sid => {
+                const sPts = pts.filter(p => p.session_id === sid);
+                if (sPts.length < 2) return;
+                L.polyline(sPts.map(p => [+p.latitude, +p.longitude]), {
+                    color: sessionColor(sid), weight: 3, opacity: 0.75,
+                    dashArray: null
+                }).addTo(locMap);
+            });
+
+            // Also draw a full-data combined polyline for visual continuity
+            locPolyline = L.polyline(pts.map(p => [+p.latitude, +p.longitude]), {
+                color: '#3b82f6', weight: 2, opacity: 0.3
+            }).addTo(locMap);
+
+            // Markers
+            pts.forEach((pt, i) => {
+                const isFirst = i === 0;
+                const isLast  = i === pts.length - 1;
+                const col = sessionColor(pt.session_id);
+                const radius = isFirst || isLast ? 9 : 5;
+                const weight = isFirst || isLast ? 3 : 1.5;
+                const m = L.circleMarker([+pt.latitude, +pt.longitude], {
+                    radius, color: isFirst ? '#10b981' : isLast ? '#ef4444' : col,
+                    fillColor: isFirst ? '#10b981' : isLast ? '#ef4444' : col,
+                    fillOpacity: 0.85, weight
+                }).addTo(locMap);
+                m.bindPopup(`
+                    <div style="font-size:12px;min-width:160px;">
+                        <b>${isFirst ? '🟢 Start' : isLast ? '🔴 End' : '📍 Point ' + (i+1)}</b><br>
+                        <span style="color:#666;">📅 ${fmtLocDate(pt.timestamp)} ${fmtLocTime(pt.timestamp)}</span><br>
+                        <span style="color:#666;">Lat: ${(+pt.latitude).toFixed(6)}</span><br>
+                        <span style="color:#666;">Lng: ${(+pt.longitude).toFixed(6)}</span><br>
+                        <span style="color:#666;">Accuracy: ${parseFloat(pt.accuracy).toFixed(1)}m</span><br>
+                        <span style="color:#666;">Session: ${(pt.session_id||'').slice(0,12)}</span>
+                    </div>
+                `);
+                locMarkers.push(m);
+            });
+
+            // Fit map to bounds
+            const bounds = L.latLngBounds(pts.map(p => [+p.latitude, +p.longitude]));
+            locMap.fitBounds(bounds, { padding: [30, 30] });
+
+            // Create animated playback marker (hidden initially)
+            locPlayMarker = L.marker([+pts[0].latitude, +pts[0].longitude], {
+                icon: L.divIcon({
+                    className: '',
+                    html: '<div style="width:18px;height:18px;background:#f59e0b;border:3px solid #fff;border-radius:50%;box-shadow:0 0 8px rgba(245,158,11,.8);"></div>',
+                    iconSize: [18,18], iconAnchor: [9,9]
+                })
+            });
+            // Start hidden
+        }
+
+        // ── Playback ──────────────────────────────────────────────────────────
+        function stopPlayback() {
+            if (locPlayTimer) { clearInterval(locPlayTimer); locPlayTimer = null; }
+            locIsPlaying = false;
+            const playBtn  = document.getElementById('locPlayBtn');
+            const pauseBtn = document.getElementById('locPauseBtn');
+            if (playBtn)  { playBtn.style.display  = ''; playBtn.disabled  = false; }
+            if (pauseBtn) { pauseBtn.style.display = 'none'; pauseBtn.disabled = true; }
+        }
+
+        function updatePlaybackProgress(idx, total) {
+            const pct = total > 1 ? (idx / (total - 1)) * 100 : 100;
+            const fill  = document.getElementById('locProgressFill');
+            const label = document.getElementById('locProgressLabel');
+            if (fill)  fill.style.width = pct.toFixed(1) + '%';
+            if (label) label.textContent = (idx + 1) + ' / ' + total;
+        }
+
+        function startPlayback() {
+            const pts   = locFilteredData.length > 0 ? locFilteredData : locData;
+            if (!pts.length || !locMap) return;
+
+            if (!locPlayMarker) initOrUpdateMap();
+            if (!locPlayMarker) return;
+
+            // Add marker to map if not already
+            if (!locMap.hasLayer(locPlayMarker)) locPlayMarker.addTo(locMap);
+
+            locIsPlaying = true;
+            const playBtn  = document.getElementById('locPlayBtn');
+            const pauseBtn = document.getElementById('locPauseBtn');
+            if (playBtn)  { playBtn.style.display  = 'none'; }
+            if (pauseBtn) { pauseBtn.style.display = ''; pauseBtn.disabled = false; }
+
+            const speed = parseInt(document.getElementById('locSpeedSelect').value || '500');
+
+            locPlayTimer = setInterval(() => {
+                if (locPlayIndex >= pts.length) {
+                    stopPlayback();
+                    updatePlaybackProgress(pts.length - 1, pts.length);
+                    return;
+                }
+                const pt = pts[locPlayIndex];
+                const ll = [+pt.latitude, +pt.longitude];
+                locPlayMarker.setLatLng(ll);
+                locMap.panTo(ll, { animate: true, duration: 0.4 });
+                updatePlaybackProgress(locPlayIndex, pts.length);
+
+                // Highlight corresponding table row
+                const globalIdx = locPlayIndex;
+                document.querySelectorAll('#locTableBody tr').forEach(r => r.classList.remove('loc-row-active'));
+                const row = document.querySelector(`#locTableBody tr[data-idx="${globalIdx}"]`);
+                if (row) { row.classList.add('loc-row-active'); row.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+
+                locPlayIndex++;
+            }, speed);
+        }
+
+        // ── Playback button wiring ────────────────────────────────────────────
+        document.getElementById('locPlayBtn').addEventListener('click', () => {
+            const pts = locFilteredData.length > 0 ? locFilteredData : locData;
+            if (!pts.length) { toast('⚠️ No location points to play.', 'var(--yellow)'); return; }
+            if (locPlayIndex >= pts.length) locPlayIndex = 0; // auto-rewind
+            initOrUpdateMap();
+            setTimeout(startPlayback, 100);
+        });
+        document.getElementById('locPauseBtn').addEventListener('click', () => {
+            stopPlayback();
+        });
+        document.getElementById('locResetBtn').addEventListener('click', () => {
+            stopPlayback();
+            locPlayIndex = 0;
+            updatePlaybackProgress(0, (locFilteredData.length || locData.length));
+            if (locPlayMarker && locMap) {
+                const pts = locFilteredData.length > 0 ? locFilteredData : locData;
+                if (pts.length) locPlayMarker.setLatLng([+pts[0].latitude, +pts[0].longitude]);
+                if (locMap.hasLayer(locPlayMarker)) locMap.removeLayer(locPlayMarker);
+            }
+        });
+        document.getElementById('locCenterMapBtn').addEventListener('click', () => {
+            const pts = locFilteredData.length > 0 ? locFilteredData : locData;
+            if (!pts.length || !locMap) return;
+            const bounds = L.latLngBounds(pts.map(p => [+p.latitude, +p.longitude]));
+            locMap.fitBounds(bounds, { padding: [30,30] });
+        });
+        document.getElementById('locRefreshBtn').addEventListener('click', () => {
+            if (!locDeviceId) return;
+            toast('🔄 Location data refreshed.', 'var(--teal)');
+        });
+        document.getElementById('locTableSearch').addEventListener('input', () => {
+            locPage = 0;
+            applyLocFilter();
+        });
+
+        // ── Hook into __appOpenPhone ──────────────────────────────────────────
+        const origOpenPhone = window.__appOpenPhone;
+        window.__appOpenPhone = function(deviceId) {
+            origOpenPhone(deviceId);
+            // reset location state
+            stopPlayback();
+            locPlayIndex = 0;
+            locActiveSession = 'all';
+            locPage = 0;
+            locFilteredData = [];
+            destroyMap();
+            // hide all loc UI until data arrives
+            document.getElementById('locEmptyState').style.display     = '';
+            document.getElementById('locStatRow').style.display         = 'none';
+            document.getElementById('locPlaybackBar').style.display     = 'none';
+            document.getElementById('locSessionTabsWrap').style.display = 'none';
+            document.getElementById('locTableWrap').style.display       = 'none';
+            document.getElementById('locMapPlaceholder').style.display  = '';
+            document.getElementById('locationMap').style.display        = 'none';
+            // attach listener
+            attachLocListenerReal(deviceId);
+        };
+
+        // ── Back button: clean up location listener ───────────────────────────
+        const origBackBtn = document.getElementById('appBackBtn');
+        origBackBtn.addEventListener('click', () => {
+            if (locUnsubscribe && typeof locUnsubscribe === 'function') {
+                locUnsubscribe(); locUnsubscribe = null;
+            }
+            stopPlayback();
+            destroyMap();
+            locData = []; locFilteredData = [];
+        });
+
+    })(); // end location module
 
 })();
 </script>
