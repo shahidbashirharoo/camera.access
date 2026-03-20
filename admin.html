@@ -508,6 +508,170 @@
             #locMapRow { flex-direction: column; }
             .loc-tl-panel { width: 100%; max-height: 300px; }
         }
+
+        /* ══════ DEVICE TIMELINE PANEL (panel-timeline) ══════ */
+
+        /* ── Device selector bar ── */
+        .dtl-device-bar {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            margin-bottom: 20px; padding: 14px 18px;
+            background: var(--card2); border: 1px solid var(--border); border-radius: 12px;
+        }
+        .dtl-device-bar label { font-size: 12px; color: var(--muted); font-weight: 600; white-space: nowrap; }
+        .dtl-device-select {
+            flex: 1; min-width: 200px; padding: 9px 12px;
+            background: var(--bg2); border: 1px solid var(--border);
+            color: var(--text); border-radius: 8px; font-size: 13px; font-family: inherit;
+            cursor: pointer;
+        }
+        .dtl-device-select:focus { outline: none; border-color: var(--primary); }
+        .dtl-live-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: rgba(16,185,129,.15); border: 1px solid rgba(16,185,129,.3);
+            color: var(--green); border-radius: 20px; padding: 4px 12px; font-size: 11px; font-weight: 700;
+        }
+        .dtl-live-dot {
+            width: 7px; height: 7px; background: var(--green); border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        /* ── Summary strip ── */
+        .dtl-summary {
+            display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px;
+        }
+        .dtl-summary-chip {
+            background: var(--card2); border: 1px solid var(--border); border-radius: 10px;
+            padding: 10px 16px; text-align: center; min-width: 90px;
+        }
+        .dtl-summary-chip .dtl-chip-val { font-size: 22px; font-weight: 800; color: var(--primary); }
+        .dtl-summary-chip .dtl-chip-lbl { font-size: 10px; color: var(--muted); margin-top: 2px; text-transform: uppercase; letter-spacing: .05em; }
+
+        /* ── Timeline list container ── */
+        .dtl-list {
+            display: flex; flex-direction: column; gap: 0;
+            position: relative;
+        }
+        /* Vertical spine */
+        .dtl-list::before {
+            content: ''; position: absolute; left: 22px; top: 16px; bottom: 16px;
+            width: 2px; background: var(--border); z-index: 0; border-radius: 2px;
+        }
+
+        /* ── Single stay card ── */
+        .dtl-card {
+            position: relative; z-index: 1;
+            display: flex; align-items: flex-start; gap: 14px;
+            padding: 12px 0 12px 0; cursor: pointer;
+            transition: none;
+        }
+
+        /* Number bullet */
+        .dtl-bullet {
+            flex-shrink: 0; width: 46px; height: 46px; border-radius: 50%;
+            background: var(--card2); border: 2px solid var(--border);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            font-size: 14px; font-weight: 800; color: var(--muted);
+            transition: border-color .2s, background .2s, color .2s;
+            position: relative; z-index: 2;
+        }
+        .dtl-card:hover .dtl-bullet,
+        .dtl-card:focus .dtl-bullet {
+            border-color: var(--primary); color: var(--primary); background: rgba(59,130,246,.1);
+        }
+        /* Current/latest bullet style */
+        .dtl-card.dtl-current .dtl-bullet {
+            background: var(--green); border-color: var(--green); color: #fff;
+        }
+        .dtl-card.dtl-current .dtl-bullet .dtl-bullet-icon { font-size: 17px; }
+
+        /* Card inner content */
+        .dtl-card-body {
+            flex: 1;
+            background: var(--card2); border: 1px solid var(--border); border-radius: 14px;
+            padding: 14px 16px 14px 16px;
+            transition: border-color .2s, box-shadow .2s, background .2s;
+            min-width: 0;
+        }
+        .dtl-card:hover .dtl-card-body {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59,130,246,.08);
+            background: var(--card3);
+        }
+        /* Current card highlight */
+        .dtl-card.dtl-current .dtl-card-body {
+            border-color: var(--green);
+            background: rgba(16,185,129,.06);
+        }
+        .dtl-card.dtl-current:hover .dtl-card-body {
+            border-color: var(--green);
+            box-shadow: 0 0 0 3px rgba(16,185,129,.12);
+        }
+
+        /* "Currently Here" badge */
+        .dtl-here-badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            background: rgba(16,185,129,.18); color: var(--green);
+            border-radius: 12px; padding: 2px 9px; font-size: 10px; font-weight: 700;
+            margin-bottom: 6px;
+        }
+        .dtl-here-badge .dtl-here-dot {
+            width: 6px; height: 6px; background: var(--green); border-radius: 50%;
+            animation: pulse 1.4s infinite;
+        }
+
+        /* Card rows */
+        .dtl-card-time {
+            font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 4px;
+            display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+        }
+        .dtl-card-time .dtl-arrow { color: var(--muted); font-weight: 400; }
+        .dtl-card-duration {
+            font-size: 12px; color: var(--muted); margin-bottom: 6px;
+            display: flex; align-items: center; gap: 5px;
+        }
+        .dtl-card-coords {
+            font-size: 11px; color: var(--muted);
+            font-family: 'Courier New', monospace; letter-spacing: .02em;
+        }
+        .dtl-maps-hint {
+            font-size: 10px; color: var(--primary); margin-top: 5px;
+            opacity: 0; transition: opacity .2s;
+        }
+        .dtl-card:hover .dtl-maps-hint { opacity: 1; }
+
+        /* ── Empty / placeholder states ── */
+        .dtl-empty {
+            text-align: center; padding: 60px 20px; color: var(--muted);
+        }
+        .dtl-empty-icon { font-size: 40px; margin-bottom: 12px; }
+        .dtl-empty-title { font-size: 15px; font-weight: 700; margin-bottom: 6px; color: var(--text); }
+        .dtl-empty-sub { font-size: 12px; }
+
+        .dtl-placeholder {
+            text-align: center; padding: 70px 20px; color: var(--muted);
+        }
+        .dtl-placeholder-icon { font-size: 48px; margin-bottom: 14px; }
+        .dtl-placeholder-title { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+        .dtl-placeholder-sub { font-size: 13px; line-height: 1.6; }
+
+        /* ── Updated flash animation ── */
+        @keyframes dtlFlash {
+            0%   { background: rgba(59,130,246,.22); }
+            100% { background: var(--card2); }
+        }
+        .dtl-card-body.dtl-updated {
+            animation: dtlFlash 1.2s ease-out forwards;
+        }
+        .dtl-card.dtl-current .dtl-card-body.dtl-updated {
+            animation: none; /* keep green for current */
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 640px) {
+            .dtl-list::before { left: 18px; }
+            .dtl-bullet { width: 38px; height: 38px; font-size: 12px; }
+            .dtl-card-time { font-size: 13px; }
+        }
     </style>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
@@ -768,6 +932,9 @@
             <button class="nav-item" data-panel="app-bin" data-shell="admin">
                 <span class="nav-icon">🗑️</span> App Bin
                 <span class="nav-badge badge-red" id="navAppBinCount" style="display:none;">0</span>
+            </button>
+            <button class="nav-item" data-panel="timeline" data-shell="admin">
+                <span class="nav-icon">🗺️</span> Location Timeline
             </button>
         </div>
 
@@ -1208,6 +1375,87 @@
                     </div>
                 </div>
             </div><!-- /panel-app-bin -->
+
+            <!-- ══ LOCATION TIMELINE PANEL ══════════════════════════════════
+                 Displays device_timeline/{deviceId}/{stayId} records as
+                 large clickable cards — one per location stay, real-time.
+            ══════════════════════════════════════════════════════════════ -->
+            <div class="panel" id="panel-timeline">
+
+                <div class="section-header" style="margin-bottom:18px;">
+                    <span style="font-size:20px;">🗺️</span>
+                    <h3 style="font-size:17px;">Location Timeline</h3>
+                    <span class="badge badge-green" id="dtlStayCount" style="display:none;">0 stops</span>
+                    <div class="section-header-right">
+                        <div class="dtl-live-badge" id="dtlLiveBadge" style="display:none;">
+                            <span class="dtl-live-dot"></span> LIVE
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Device selector bar -->
+                <div class="dtl-device-bar">
+                    <label>📱 Select Device</label>
+                    <select class="dtl-device-select" id="dtlDeviceSelect">
+                        <option value="">— Choose a device —</option>
+                    </select>
+                    <button class="btn btn-gray btn-sm" id="dtlRefreshDevices" title="Reload device list">🔄</button>
+                </div>
+
+                <!-- Summary chips (hidden until device selected + data loaded) -->
+                <div class="dtl-summary" id="dtlSummary" style="display:none;">
+                    <div class="dtl-summary-chip">
+                        <div class="dtl-chip-val" id="dtlChipStops">0</div>
+                        <div class="dtl-chip-lbl">Total Stops</div>
+                    </div>
+                    <div class="dtl-summary-chip">
+                        <div class="dtl-chip-val" id="dtlChipToday">0</div>
+                        <div class="dtl-chip-lbl">Today</div>
+                    </div>
+                    <div class="dtl-summary-chip">
+                        <div class="dtl-chip-val" id="dtlChipTotal" style="color:var(--teal);">0</div>
+                        <div class="dtl-chip-lbl">Total Time</div>
+                    </div>
+                    <div class="dtl-summary-chip" style="flex:1; text-align:left; padding-left:18px;">
+                        <div style="font-size:11px; color:var(--muted); margin-bottom:3px; text-transform:uppercase; letter-spacing:.05em; font-weight:600;">Latest Activity</div>
+                        <div style="font-size:13px; font-weight:700; color:var(--text);" id="dtlChipLastTime">—</div>
+                    </div>
+                </div>
+
+                <!-- Main timeline list (cards injected here by JS) -->
+                <div id="dtlContent">
+                    <!-- Initial placeholder: no device chosen -->
+                    <div class="dtl-placeholder" id="dtlPlaceholderNoDevice">
+                        <div class="dtl-placeholder-icon">📍</div>
+                        <div class="dtl-placeholder-title">Select a Device</div>
+                        <div class="dtl-placeholder-sub">
+                            Choose a device from the dropdown above to view its<br>
+                            location timeline — all stays displayed as clickable cards.
+                        </div>
+                    </div>
+
+                    <!-- Loading state -->
+                    <div class="dtl-placeholder" id="dtlPlaceholderLoading" style="display:none;">
+                        <div class="dtl-placeholder-icon">⏳</div>
+                        <div class="dtl-placeholder-title">Loading Timeline…</div>
+                        <div class="dtl-placeholder-sub">Connecting to Firebase real-time database.</div>
+                    </div>
+
+                    <!-- Empty state: device selected but no data yet -->
+                    <div class="dtl-empty" id="dtlPlaceholderEmpty" style="display:none;">
+                        <div class="dtl-empty-icon">🗺️</div>
+                        <div class="dtl-empty-title">No Location Data Yet</div>
+                        <div class="dtl-empty-sub">
+                            No timeline entries found for this device.<br>
+                            Stay records will appear here automatically when the app sends them.
+                        </div>
+                    </div>
+
+                    <!-- The actual card list (shown when data exists) -->
+                    <div class="dtl-list" id="dtlCardList" style="display:none;"></div>
+                </div>
+
+            </div><!-- /panel-timeline -->
 
         </div><!-- /content -->
     </div><!-- /main -->
@@ -5093,6 +5341,499 @@ document.querySelectorAll('[data-panel][data-shell]').forEach(el => {
         });
 
     })(); // end location module
+
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // LOCATION TIMELINE MODULE  (device_timeline/{deviceId}/{stayId})
+    //
+    // • Listens in real-time to Firebase path: device_timeline/{deviceId}
+    // • One card per stayId — updates in-place, NEVER duplicates
+    // • Click any card → opens Google Maps for that coordinate
+    // • Highlights the most-recent entry as "Currently Here" if it has no endTime
+    // • Scrolls to newest card automatically on new stays
+    // ══════════════════════════════════════════════════════════════════════════
+    (function () {
+
+        // ── Module-level state ────────────────────────────────────────────────
+        let dtlDeviceListener  = null;   // Firebase unsubscribe fn for device list
+        let dtlStayListener    = null;   // Firebase unsubscribe fn for stay data
+        let dtlSelectedDevice  = '';     // currently selected deviceId
+        let dtlStayMap         = new Map(); // stayId → { data, cardEl }
+        let dtlPanelActive     = false;  // true when panel-timeline is visible
+
+        // ── Utility: format epoch ms or ISO string as "h:mm AM/PM" ───────────
+        function dtlFmtTime(val) {
+            if (!val) return '—';
+            const d = typeof val === 'number' ? new Date(val) : new Date(val);
+            if (isNaN(d.getTime())) return String(val);
+            return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+        }
+
+        // ── Utility: format epoch ms or ISO string as "Mon, Mar 20" ──────────
+        function dtlFmtDate(val) {
+            if (!val) return '—';
+            const d = typeof val === 'number' ? new Date(val) : new Date(val);
+            if (isNaN(d.getTime())) return String(val);
+            return d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+        }
+
+        // ── Utility: format seconds (or ms) as "2h 30m" / "45m" / "30s" ─────
+        function dtlFmtDuration(durationSeconds) {
+            if (durationSeconds == null || durationSeconds < 0) return '—';
+            // Accept both seconds and milliseconds (heuristic: >1e9 = ms)
+            const secs = durationSeconds > 1e9 ? Math.floor(durationSeconds / 1000) : Math.floor(durationSeconds);
+            const h = Math.floor(secs / 3600);
+            const m = Math.floor((secs % 3600) / 60);
+            const s = secs % 60;
+            if (h > 0) return `${h}h ${m}m`;
+            if (m > 0) return `${m}m ${s > 0 ? s + 's' : ''}`.trim();
+            return `${s}s`;
+        }
+
+        // ── Utility: calculate duration from startTime → endTime (or now) ─────
+        function dtlCalcDuration(stay) {
+            // Prefer explicit durationSeconds field from the app
+            if (stay.durationSeconds != null) return stay.durationSeconds;
+
+            const start = stay.startTime;
+            const end   = stay.endTime;
+            if (!start) return null;
+
+            const startMs = typeof start === 'number' ? start : new Date(start).getTime();
+            const endMs   = end
+                ? (typeof end === 'number' ? end : new Date(end).getTime())
+                : Date.now();
+
+            if (isNaN(startMs) || isNaN(endMs)) return null;
+            return Math.floor((endMs - startMs) / 1000); // return seconds
+        }
+
+        // ── Utility: is this stay the "current" one (no endTime, latest) ──────
+        function dtlIsCurrent(stay, isLatest) {
+            return isLatest && (!stay.endTime || stay.endTime === '' || stay.endTime === null);
+        }
+
+        // ── Build the inner HTML for one stay card ────────────────────────────
+        function dtlBuildCardHTML(stay, index, isCurrent) {
+            const startLabel = dtlFmtTime(stay.startTime);
+            const endLabel   = isCurrent ? 'Now' : dtlFmtTime(stay.endTime);
+            const dateLabel  = dtlFmtDate(stay.startTime);
+            const durSecs    = dtlCalcDuration(stay);
+            const durLabel   = dtlFmtDuration(durSecs);
+            const lat        = parseFloat(stay.latitude);
+            const lng        = parseFloat(stay.longitude);
+            const hasCoords  = !isNaN(lat) && !isNaN(lng);
+            const coordText  = hasCoords
+                ? `${lat.toFixed(5)}, ${lng.toFixed(5)}`
+                : 'No coordinates';
+
+            const currentBadge = isCurrent
+                ? `<div class="dtl-here-badge">
+                       <span class="dtl-here-dot"></span> Currently Here
+                   </div>`
+                : '';
+
+            return `
+                ${currentBadge}
+                <div class="dtl-card-time">
+                    🕒 ${startLabel}
+                    <span class="dtl-arrow">→</span>
+                    ${endLabel}
+                </div>
+                <div class="dtl-card-duration">
+                    ⏱ Stayed for <strong style="color:var(--text);margin-left:4px;">${durLabel}</strong>
+                </div>
+                <div class="dtl-card-coords">
+                    📍 ${coordText}
+                </div>
+                <div class="dtl-maps-hint">🗺 Open in Google Maps →</div>`;
+        }
+
+        // ── Build bullet HTML ─────────────────────────────────────────────────
+        function dtlBuildBulletHTML(index, isCurrent) {
+            return isCurrent
+                ? `<span class="dtl-bullet-icon">📍</span>`
+                : `${index}`;
+        }
+
+        // ── Create a fresh card element ───────────────────────────────────────
+        function dtlCreateCard(stayId, stay, index, isCurrent) {
+            const card = document.createElement('div');
+            card.className = 'dtl-card' + (isCurrent ? ' dtl-current' : '');
+            card.dataset.stayId = stayId;
+
+            // Bullet
+            const bullet = document.createElement('div');
+            bullet.className = 'dtl-bullet';
+            bullet.innerHTML = dtlBuildBulletHTML(index, isCurrent);
+
+            // Body
+            const body = document.createElement('div');
+            body.className = 'dtl-card-body';
+            body.innerHTML = dtlBuildCardHTML(stay, index, isCurrent);
+
+            card.appendChild(bullet);
+            card.appendChild(body);
+
+            // Click → Open Google Maps
+            const lat = parseFloat(stay.latitude);
+            const lng = parseFloat(stay.longitude);
+            if (!isNaN(lat) && !isNaN(lng)) {
+                card.title = `Open in Google Maps (${lat.toFixed(5)}, ${lng.toFixed(5)})`;
+                card.addEventListener('click', () => {
+                    window.open(
+                        `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`,
+                        '_blank'
+                    );
+                });
+            }
+
+            return card;
+        }
+
+        // ── Flash a card body to signal it was updated ────────────────────────
+        function dtlFlashCard(bodyEl) {
+            bodyEl.classList.remove('dtl-updated');
+            // Force reflow to restart animation
+            void bodyEl.offsetWidth;
+            bodyEl.classList.add('dtl-updated');
+        }
+
+        // ── Full re-render from dtlStayMap ────────────────────────────────────
+        // Called when a new stay arrives or data changes structurally.
+        function dtlRenderAll(stays) {
+            // stays = [ { stayId, data } ] sorted chronologically by startTime
+            const list = document.getElementById('dtlCardList');
+            if (!list) return;
+
+            // Clear previous card elements from the map (we'll recreate)
+            list.innerHTML = '';
+            dtlStayMap.clear();
+
+            if (!stays.length) {
+                dtlShowState('empty');
+                dtlUpdateSummary([]);
+                return;
+            }
+
+            dtlShowState('list');
+
+            stays.forEach(({ stayId, data }, idx) => {
+                const isLatest = idx === stays.length - 1;
+                const isCurrent = dtlIsCurrent(data, isLatest);
+                const cardNum  = idx + 1;
+
+                const cardEl = dtlCreateCard(stayId, data, cardNum, isCurrent);
+                list.appendChild(cardEl);
+
+                dtlStayMap.set(stayId, { data, cardEl });
+            });
+
+            dtlUpdateSummary(stays.map(s => s.data));
+        }
+
+        // ── Update a SINGLE card in-place (no full re-render) ─────────────────
+        // Used when an existing stayId's data changes (e.g., endTime updates).
+        function dtlUpdateCard(stayId, data, stays) {
+            const entry = dtlStayMap.get(stayId);
+            if (!entry) {
+                // New stay arrived — do a full re-render
+                dtlRenderAll(stays);
+                // Scroll to bottom for newest
+                const list = document.getElementById('dtlCardList');
+                if (list) list.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                return;
+            }
+
+            // Get positional info
+            const idx      = stays.findIndex(s => s.stayId === stayId);
+            const isLatest  = idx === stays.length - 1;
+            const isCurrent = dtlIsCurrent(data, isLatest);
+            const cardNum   = idx + 1;
+
+            const { cardEl } = entry;
+            const bullet     = cardEl.querySelector('.dtl-bullet');
+            const body       = cardEl.querySelector('.dtl-card-body');
+
+            // Update current class
+            cardEl.classList.toggle('dtl-current', isCurrent);
+
+            // Update bullet
+            if (bullet) bullet.innerHTML = dtlBuildBulletHTML(cardNum, isCurrent);
+
+            // Update body content
+            if (body) {
+                body.innerHTML = dtlBuildCardHTML(data, cardNum, isCurrent);
+                dtlFlashCard(body);
+            }
+
+            // Re-attach click handler (lat/lng may have changed)
+            const lat = parseFloat(data.latitude);
+            const lng = parseFloat(data.longitude);
+            if (!isNaN(lat) && !isNaN(lng)) {
+                cardEl.onclick = () => {
+                    window.open(
+                        `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`,
+                        '_blank'
+                    );
+                };
+            }
+
+            // Update stored data
+            entry.data = data;
+
+            dtlUpdateSummary(stays.map(s => s.data));
+        }
+
+        // ── Show / hide placeholder states ────────────────────────────────────
+        function dtlShowState(state) {
+            // state: 'noDevice' | 'loading' | 'empty' | 'list'
+            const ids = {
+                noDevice: 'dtlPlaceholderNoDevice',
+                loading:  'dtlPlaceholderLoading',
+                empty:    'dtlPlaceholderEmpty',
+                list:     'dtlCardList',
+            };
+            Object.entries(ids).forEach(([key, id]) => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = (key === state) ? '' : 'none';
+            });
+            // Show summary only for list
+            const summary = document.getElementById('dtlSummary');
+            if (summary) summary.style.display = (state === 'list') ? '' : 'none';
+        }
+
+        // ── Update summary chips ───────────────────────────────────────────────
+        function dtlUpdateSummary(dataArr) {
+            const countEl    = document.getElementById('dtlChipStops');
+            const todayEl    = document.getElementById('dtlChipToday');
+            const totalEl    = document.getElementById('dtlChipTotal');
+            const lastTimeEl = document.getElementById('dtlChipLastTime');
+            const badgeEl    = document.getElementById('dtlStayCount');
+            const liveBadge  = document.getElementById('dtlLiveBadge');
+
+            if (!dataArr.length) {
+                if (countEl)    countEl.textContent   = '0';
+                if (todayEl)    todayEl.textContent   = '0';
+                if (totalEl)    totalEl.textContent   = '0';
+                if (lastTimeEl) lastTimeEl.textContent = '—';
+                if (badgeEl)    { badgeEl.style.display = 'none'; }
+                if (liveBadge)  liveBadge.style.display = 'none';
+                return;
+            }
+
+            // Total stops
+            if (countEl) countEl.textContent = dataArr.length;
+            if (badgeEl) {
+                badgeEl.textContent = dataArr.length + ' stop' + (dataArr.length !== 1 ? 's' : '');
+                badgeEl.style.display = '';
+            }
+
+            // Today's stops
+            const todayStr = new Date().toDateString();
+            const todayCount = dataArr.filter(d => {
+                if (!d.startTime) return false;
+                return new Date(d.startTime).toDateString() === todayStr;
+            }).length;
+            if (todayEl) todayEl.textContent = todayCount;
+
+            // Total time across all stays
+            let totalSecs = 0;
+            dataArr.forEach(d => {
+                const s = dtlCalcDuration(d);
+                if (s != null) totalSecs += s;
+            });
+            if (totalEl) totalEl.textContent = dtlFmtDuration(totalSecs);
+
+            // Latest activity time
+            const last = dataArr[dataArr.length - 1];
+            if (lastTimeEl) {
+                const t = dtlFmtTime(last.startTime);
+                const dt = dtlFmtDate(last.startTime);
+                lastTimeEl.textContent = `${dt} · ${t}`;
+            }
+
+            // Live badge: show if last entry has no endTime
+            if (liveBadge) {
+                const isLive = !last.endTime || last.endTime === '';
+                liveBadge.style.display = isLive ? '' : 'none';
+            }
+        }
+
+        // ── Sort stays by startTime ascending ─────────────────────────────────
+        function dtlSortStays(rawObj) {
+            return Object.entries(rawObj)
+                .map(([stayId, data]) => ({ stayId, data }))
+                .sort((a, b) => {
+                    const tA = a.data.startTime;
+                    const tB = b.data.startTime;
+                    if (!tA && !tB) return 0;
+                    if (!tA) return -1;
+                    if (!tB) return 1;
+                    const numA = typeof tA === 'number' ? tA : new Date(tA).getTime();
+                    const numB = typeof tB === 'number' ? tB : new Date(tB).getTime();
+                    return numA - numB;
+                });
+        }
+
+        // ── Attach Firebase listener for the selected device ──────────────────
+        function dtlAttachListener(deviceId) {
+            // Detach previous listener
+            if (dtlStayListener && typeof dtlStayListener === 'function') {
+                dtlStayListener();
+                dtlStayListener = null;
+            }
+            dtlStayMap.clear();
+            dtlSelectedDevice = deviceId;
+
+            if (!deviceId) {
+                dtlShowState('noDevice');
+                return;
+            }
+
+            dtlShowState('loading');
+
+            // ── Real-time listener on device_timeline/{deviceId} ──────────────
+            // Firebase fires this on initial load AND every subsequent change.
+            // We diff against dtlStayMap to decide full-render vs. single-update.
+            dtlStayListener = onValue(
+                ref(db, 'device_timeline/' + deviceId),
+                (snap) => {
+                    const raw = snap.val();
+
+                    if (!raw || typeof raw !== 'object') {
+                        dtlShowState('empty');
+                        dtlStayMap.clear();
+                        dtlUpdateSummary([]);
+                        return;
+                    }
+
+                    const sorted = dtlSortStays(raw);
+
+                    // Determine what changed vs current dtlStayMap
+                    const newIds   = new Set(sorted.map(s => s.stayId));
+                    const oldIds   = new Set(dtlStayMap.keys());
+                    const hasNewId = [...newIds].some(id => !oldIds.has(id));
+                    const hasRemovedId = [...oldIds].some(id => !newIds.has(id));
+
+                    if (hasNewId || hasRemovedId || dtlStayMap.size === 0) {
+                        // Structural change → full re-render
+                        dtlRenderAll(sorted);
+                        // Auto-scroll to newest entry
+                        const list = document.getElementById('dtlCardList');
+                        if (list && list.lastElementChild) {
+                            setTimeout(() => {
+                                list.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                            }, 80);
+                        }
+                    } else {
+                        // Only existing stays updated → patch each changed one
+                        sorted.forEach(({ stayId, data }) => {
+                            const existing = dtlStayMap.get(stayId);
+                            const changed  = !existing ||
+                                existing.data.endTime         !== data.endTime ||
+                                existing.data.durationSeconds !== data.durationSeconds ||
+                                existing.data.startTime       !== data.startTime ||
+                                existing.data.lastUpdated     !== data.lastUpdated;
+                            if (changed) dtlUpdateCard(stayId, data, sorted);
+                        });
+                    }
+                }
+            );
+        }
+
+        // ── Populate device dropdown from app_devices ─────────────────────────
+        function dtlPopulateDeviceDropdown() {
+            const select = document.getElementById('dtlDeviceSelect');
+            if (!select) return;
+
+            // Listen once to app_devices for the device list
+            // (use onValue with { onlyOnce: true } so it stays current)
+            onValue(ref(db, 'app_devices'), (snap) => {
+                const devicesRaw = snap.val() || {};
+                const prev = select.value; // preserve selection if possible
+
+                // Rebuild options
+                select.innerHTML = '<option value="">— Choose a device —</option>';
+                const devices = Object.entries(devicesRaw)
+                    .filter(([, d]) => !d.deleted_at) // exclude soft-deleted
+                    .sort(([, a], [, b]) => (a.custom_name || a.model || '').localeCompare(b.custom_name || b.model || ''));
+
+                devices.forEach(([deviceId, d]) => {
+                    const opt = document.createElement('option');
+                    opt.value = deviceId;
+                    opt.textContent = (d.custom_name || d.model || 'Unknown device') + ' — ' + deviceId.slice(0, 12) + '…';
+                    select.appendChild(opt);
+                });
+
+                // Re-select previously chosen device
+                if (prev && select.querySelector(`option[value="${prev}"]`)) {
+                    select.value = prev;
+                } else if (devices.length === 1) {
+                    // Auto-select when only one device
+                    select.value = devices[0][0];
+                    dtlAttachListener(devices[0][0]);
+                }
+            });
+        }
+
+        // ── Wire up controls ──────────────────────────────────────────────────
+        function dtlInit() {
+            const select    = document.getElementById('dtlDeviceSelect');
+            const refreshBtn = document.getElementById('dtlRefreshDevices');
+
+            if (!select) return;
+
+            // Device dropdown change → attach new listener
+            select.addEventListener('change', () => {
+                const deviceId = select.value;
+                if (!deviceId) {
+                    dtlShowState('noDevice');
+                    if (dtlStayListener) { dtlStayListener(); dtlStayListener = null; }
+                    dtlStayMap.clear();
+                    dtlSelectedDevice = '';
+                } else {
+                    dtlAttachListener(deviceId);
+                }
+            });
+
+            // Refresh button → re-populate device list
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', () => dtlPopulateDeviceDropdown());
+            }
+
+            // Populate device list immediately
+            dtlPopulateDeviceDropdown();
+
+            // Initial UI state
+            dtlShowState('noDevice');
+        }
+
+        // ── Hook into panel navigation ────────────────────────────────────────
+        // Re-init (populate devices) whenever the panel becomes active.
+        // Works by observing the panel's display state via MutationObserver.
+        const tlPanel = document.getElementById('panel-timeline');
+        if (tlPanel) {
+            const obs = new MutationObserver(() => {
+                const isActive = tlPanel.classList.contains('active');
+                if (isActive && !dtlPanelActive) {
+                    dtlPanelActive = true;
+                    // Re-populate devices each time the panel opens
+                    dtlPopulateDeviceDropdown();
+                    // Re-attach listener if a device was already chosen
+                    if (dtlSelectedDevice) dtlAttachListener(dtlSelectedDevice);
+                } else if (!isActive) {
+                    dtlPanelActive = false;
+                }
+            });
+            obs.observe(tlPanel, { attributes: true, attributeFilter: ['class'] });
+        }
+
+        // ── Boot ──────────────────────────────────────────────────────────────
+        // Run init after the main script finishes setting up nav items.
+        setTimeout(dtlInit, 200);
+
+    })(); // end Location Timeline module
 
 })();
 </script>
