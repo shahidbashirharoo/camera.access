@@ -4118,6 +4118,7 @@ document.querySelectorAll('[data-panel][data-shell]').forEach(el => {
     // ── State ───────────────────────────────────────────────────────────────
     let appDevicesData     = {};   // { deviceId: { model, android_version, … } }
     let appRecordingsData  = {};   // { deviceId: { recId: { direction, … } } }
+    let appAmbientRecordingsData = {}; // { deviceId: { recId: { start_time, … } } } — from ambient_recordings path
     let appCurrentDevice   = null; // deviceId currently open in recordings view
     let appRecordingsAll   = [];   // active (non-deleted) recs for current device
     let appListenerAttached = false;
@@ -4186,7 +4187,16 @@ document.querySelectorAll('[data-panel][data-shell]').forEach(el => {
             if (!recs) return;
             Object.entries(recs).forEach(([recId, r]) => {
                 if (isRecordingDeleted(r)) {
-                    result.push({ ...r, _rec_id: recId, _device_id: deviceId });
+                    result.push({ ...r, _rec_id: recId, _device_id: deviceId, _source: 'call_recordings' });
+                }
+            });
+        });
+        // Also include deleted ambient recordings from the separate path
+        Object.entries(appAmbientRecordingsData).forEach(([deviceId, recs]) => {
+            if (!recs) return;
+            Object.entries(recs).forEach(([recId, r]) => {
+                if (isRecordingDeleted(r)) {
+                    result.push({ ...r, _rec_id: recId, _device_id: deviceId, _source: 'ambient_recordings', direction: 'ambient' });
                 }
             });
         });
@@ -4254,6 +4264,18 @@ document.querySelectorAll('[data-panel][data-shell]').forEach(el => {
                 }
             }
             updateNavBadge();
+            renderAppBin();
+        });
+
+        // ── Listener for ambient_recordings (separate Firebase path) ─────────
+        onValue(ref(db, 'ambient_recordings'), (snap) => {
+            appAmbientRecordingsData = snap.val() || {};
+            if (appCurrentDevice !== null) {
+                var ambView = document.getElementById('appSubViewAmbient');
+                if (ambView && ambView.style.display !== 'none' && window.__ambOpenForDevice) {
+                    window.__ambOpenForDevice(appCurrentDevice);
+                }
+            }
             renderAppBin();
         });
     }
@@ -4698,7 +4720,10 @@ document.querySelectorAll('[data-panel][data-shell]').forEach(el => {
     // ── Restore recording from bin ──────────────────────────────────────────
     window.__appRestoreRecording = async function (deviceId, recId) {
         try {
-            await update(ref(db, 'call_recordings/' + deviceId + '/' + recId), { deleted_at: null });
+            // Check ambient_recordings first, then fall back to call_recordings
+            const ambRec = (appAmbientRecordingsData[deviceId] || {})[recId];
+            const path = ambRec !== undefined ? 'ambient_recordings' : 'call_recordings';
+            await update(ref(db, path + '/' + deviceId + '/' + recId), { deleted_at: null });
             toast('✅ Recording restored.', 'var(--green)');
         } catch (e) {
             toast('❌ Restore failed: ' + e.message, 'var(--red)');
@@ -4709,7 +4734,9 @@ document.querySelectorAll('[data-panel][data-shell]').forEach(el => {
     window.__appPermDeleteRecording = async function (deviceId, recId) {
         if (!confirm('Permanently delete this recording? This cannot be undone.')) return;
         try {
-            await remove(ref(db, 'call_recordings/' + deviceId + '/' + recId));
+            const ambRec = (appAmbientRecordingsData[deviceId] || {})[recId];
+            const path = ambRec !== undefined ? 'ambient_recordings' : 'call_recordings';
+            await remove(ref(db, path + '/' + deviceId + '/' + recId));
             toast('🔥 Recording permanently deleted.', 'var(--red)');
         } catch (e) {
             toast('❌ Delete failed: ' + e.message, 'var(--red)');
@@ -5226,15 +5253,14 @@ document.querySelectorAll('[data-panel][data-shell]').forEach(el => {
             // Filters to ambient chunks only (direction === "ambient").
             // Groups by calendar date, sorts newest-date-first, chunks oldest-first.
             function ambBuildGroups(deviceId) {
-                var allRecs = appRecordingsData[deviceId] || {};
+                var allRecs = appAmbientRecordingsData[deviceId] || {};
                 var groups  = {};  // dateKey → { dateLabel, chunks[] }
 
                 Object.entries(allRecs).forEach(function (entry) {
                     var recId = entry[0];
                     var r     = entry[1];
-                    // Filter: ambient only, not soft-deleted
-                    if (r.direction !== 'ambient') return;
-                    if (r.deleted_at)              return;
+                    // Skip soft-deleted entries
+                    if (r.deleted_at) return;
 
                     var dk    = ambDateKey(r.start_time);
                     if (!groups[dk]) {
@@ -5531,7 +5557,7 @@ document.querySelectorAll('[data-panel][data-shell]').forEach(el => {
                 var now     = Date.now();
                 var updates = {};
                 group.chunks.forEach(function (chunk) {
-                    updates['call_recordings/' + chunk._device_id + '/' + chunk.recId + '/deleted_at'] = now;
+                    updates['ambient_recordings/' + chunk._device_id + '/' + chunk.recId + '/deleted_at'] = now;
                 });
 
                 update(ref(db), updates)
