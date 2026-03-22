@@ -5566,13 +5566,22 @@ document.querySelectorAll('[data-panel][data-shell]').forEach(el => {
                 var container = document.getElementById('appAmbDayList');
                 if (!container) return;
 
-                // Revoke cached merged URLs on re-render (data may have changed)
-                Object.values(ambMergedURLs).forEach(function(u){ try{URL.revokeObjectURL(u);}catch(e){} });
-                ambMergedURLs = {};
+                // Build groups first so we know which dateKeys are still valid
+                var groups = ambBuildGroups(ambCurrentDevice);
+                var currentDateKeys = {};
+                groups.forEach(function(g){ currentDateKeys[g.dateKey] = true; });
+
+                // Only revoke merged URLs for days no longer present — preserve the rest
+                Object.keys(ambMergedURLs).forEach(function(dk) {
+                    if (!currentDateKeys[dk]) {
+                        try { URL.revokeObjectURL(ambMergedURLs[dk]); } catch(e) {}
+                        delete ambMergedURLs[dk];
+                    }
+                });
+
                 ambSelectedDays.clear();
                 ambUpdateBulkBar();
 
-                var groups = ambBuildGroups(ambCurrentDevice);
                 ambDayGroups = groups;
                 ambUpdateSummary(groups);
 
@@ -5848,38 +5857,43 @@ document.querySelectorAll('[data-panel][data-shell]').forEach(el => {
                     .catch(function(e){ toast('❌ Delete failed: ' + e.message, 'var(--red)'); });
             };
 
-            // ── FIX 3: Download as ONE merged file with proper filename ────────
+            // ── Download merged audio for a day ───────────────────────────────
             window.__ambDownloadDay = function(dateKey) {
-    var url = ambMergedURLs[dateKey];
-    if (!url) {
-        toast('⏳ Audio still preparing, try again in a moment…', 'var(--purple)');
-        return;
-    }
+                // Always download from the cached merged blob URL — never async.
+                // Browsers block a.click() inside Promise.then() (non-user-gesture).
+                // ambPreMergeAll() populates ambMergedURLs in the background on load.
+                var url = ambMergedURLs[dateKey];
+                if (!url) {
+                    toast('⏳ Audio still preparing… try again in a moment.', 'var(--purple)');
+                    return;
+                }
 
-    var group = ambDayGroups.find(function(g){ return g.dateKey===dateKey; });
-    if (!group) return;
-    var chunks = group.chunks.filter(function(c){ return !!c.audio_url; });
+                var group = ambDayGroups.find(function(g){ return g.dateKey===dateKey; });
+                if (!group) return;
+                var chunks = group.chunks.filter(function(c){ return !!c.audio_url; });
+                if (chunks.length === 0) { toast('⚠️ No audio available.', 'var(--yellow)'); return; }
 
-    var devInfo  = appDevicesData[ambCurrentDevice] || {};
-    var devName  = (devInfo.custom_name || devInfo.model || 'Device').replace(/[\\/\\\\:*?\"<>|]/g,'');
-    var dateStr  = ambFmtFileDate(chunks[0].start_time);
-    var startStr = ambFmtFileTime(chunks[0].start_time);
-    var endChunk = chunks[chunks.length - 1];
-    var endTime  = new Date(endChunk.start_time || 0);
-    if (!isNaN(endTime.getTime()) && endChunk.duration_seconds) {
-        endTime = new Date(endTime.getTime() + endChunk.duration_seconds * 1000);
-    }
-    var endStr   = ambFmtFileTime(endTime.toISOString ? endTime.toISOString() : endChunk.start_time);
-    var filename = devName + ' ' + dateStr + ' ' + startStr + ' to ' + endStr + '.mp3';
+                // Build filename: "<Device Name> <DD-MM-YYYY> <StartTime> to <EndTime>.mp3"
+                var devInfo  = appDevicesData[ambCurrentDevice] || {};
+                var devName  = (devInfo.custom_name || devInfo.model || 'Device').replace(/[\/\\:*?"<>|]/g,'');
+                var dateStr  = ambFmtFileDate(chunks[0].start_time);
+                var startStr = ambFmtFileTime(chunks[0].start_time);
+                var endChunk = chunks[chunks.length - 1];
+                var endTime  = new Date(endChunk.start_time || 0);
+                if (!isNaN(endTime.getTime()) && endChunk.duration_seconds) {
+                    endTime = new Date(endTime.getTime() + endChunk.duration_seconds * 1000);
+                }
+                var endStr   = ambFmtFileTime(endTime.toISOString ? endTime.toISOString() : endChunk.start_time);
+                var filename = devName + ' ' + dateStr + ' ' + startStr + ' to ' + endStr + '.mp3';
 
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(function(){ document.body.removeChild(a); }, 200);
-    toast('✅ Downloaded: ' + filename, 'var(--green)');
-};
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(function(){ document.body.removeChild(a); }, 200);
+                toast('✅ Downloaded: ' + filename, 'var(--green)');
+            };
 
             // ── Delete all chunks for a day (soft-delete — UNCHANGED) ─────────
             window.__ambDeleteDay = function(dateKey) {
